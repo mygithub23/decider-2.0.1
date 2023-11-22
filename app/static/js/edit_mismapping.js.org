@@ -1,41 +1,17 @@
 //Mismapping
 
-// & &amp;
-// < &lt;
-// > &gt;
-// " &quot;
-// ' &#x27;
 $(document).ready(function () {
     const urlParams = new URLSearchParams(window.location.search);
 
     // initialize all the dropdowns
     mismappingInit();
 
-// ------ Fix for XSS vulnerabilities
-
-    function htmlDecode(input) {
-        const textArea = document.createElement("textarea");
-        textArea.innerHTML = input;
-        return textArea.value;
-    }
-    function htmlEncode(input) {
-        const textArea = document.createElement("textarea");
-        textArea.innerText = input;
-        return textArea.innerHTML.split("<br>").join("\n");
-    }
-
-    function htmlDecodeTag(input) {
-        let doc = new DOMParser().parseFromString(input, "text/html");
-        return doc.documentElement.textContent;
-  }
-// -----
-
     // if the url contains version, index, and tactic
     // this is primarily used in the success page that redirects the user to the mismapping page
     // this also works if someone were to share the mismappings link
     if (urlParams.get("version") && urlParams.get("index") && urlParams.get("tactic")) {
-        let tactic = htmlEncode(urlParams.get("tactic"));
-        let index  = htmlEncode(urlParams.get("index"));
+        let tactic = urlParams.get("tactic");
+        let index = urlParams.get("index");
 
         let observerConfig = {
             attributes: true,
@@ -43,17 +19,13 @@ $(document).ready(function () {
             characterData: true,
         };
 
-
         buildSidebar([urlParams.get("tactic")]);
 
         const sidebar_target = $("#sideBar").get(0);
 
-// XSS check
         // observer to wait for the sidebar to finish loading
         let sidebar_observer = new MutationObserver((_, observer) => {
-            // let item = $(`div[name="${tactic}"] a[name="${index}"]`);
-            let item = div[name=htmlDecode(tactic)] a[name=htmlDecode(IDBIndex)];
-
+            let item = $(`div[name="${tactic}"] a[name="${index}"]`);
             preFillForm(item);
             observer.disconnect();
         });
@@ -119,14 +91,12 @@ function renderMismapDropdown(arr, id) {
 
 // builds the individual item in the dropdown
 function buildDropdownItem(technique, selected = "") {
-    let technique_id = htmlEncode(technique.technique_id);
-    let technique_name = htmlEncode(technique.technique_name);
+    let technique_id = technique.technique_id;
+    let technique_name = technique.technique_name;
 
-// XSS 
     let a = $(`<a class="dropdown-item ${selected}" ></a>`);
 
-    // a.html(`${technique_id} (${technique_name})`);
-    a.html(htmlDecode(technique_id) (htmlDecode(technique_name)));
+    a.html(`${technique_id} (${technique_name})`);
     a.data("technique_id", technique_id);
     a.attr("href", "javascript:void(0);");
 
@@ -345,14 +315,13 @@ function preFillForm(element) {
                     corrected === null || corrected === undefined
                         ? "None (N/A)"
                         : `${corrected.technique_id} (${corrected.technique_name})`;
-// XXX fix this                        
                 $("#mismappingsContainer").append(
                     buildMismappingForm(
-                        htmlEncode(original.technique_id) (htmlEncode(original.technique_name)),
-                        htmlEncode(corrected),
-                        htmlEncode(mismap.context),
-                        htmlEncode(mismap.rationale),
-                        htmlEncode(mismap.uid)
+                        `${original.technique_id} (${original.technique_name})`,
+                        corrected,
+                        mismap.context,
+                        mismap.rationale,
+                        mismap.uid
                     )
                 );
             }
@@ -382,7 +351,7 @@ function buildMismappingForm(original, corrected, context, rationale, uid) {
                                 <div class="dropdown-trigger">
                                     <div class="field">
                                         <p class="control is-expanded has-icons-right">
-                                            <input class="input" data-field="original" oninput="mismappingSearch(this,this.value)" type="text" onkeydown="mismappingNavigate(this,event)" placeholder="Search for technique... " value="${htmlDecode(original)}" />
+                                            <input class="input" data-field="original" oninput="mismappingSearch(this,this.value)" type="text" onkeydown="mismappingNavigate(this,event)" placeholder="Search for technique... " value="${original}" />
                                             <span class="icon is-right"><i class="mdi mdi-18px mdi-menu-down"></i></span>
                                         </p>
                                     </div>
@@ -401,7 +370,7 @@ function buildMismappingForm(original, corrected, context, rationale, uid) {
                                 <div class="dropdown-trigger">
                                     <div class="field">
                                         <p class="control is-expanded has-icons-right">
-                                            <input class="input" data-field="corrected" oninput="mismappingSearch(this,this.value)" onkeydown="mismappingNavigate(this,event)" type="text" placeholder="Search for technique..." value=${htmlDecode(corrected)}/>
+                                            <input class="input" data-field="corrected" oninput="mismappingSearch(this,this.value)" onkeydown="mismappingNavigate(this,event)" type="text" placeholder="Search for technique..." value="${corrected}"/>
                                             <span class="icon is-right"><i class="mdi mdi-18px mdi-menu-down"></i></span>
                                         </p>
                                     </div>
@@ -418,18 +387,18 @@ function buildMismappingForm(original, corrected, context, rationale, uid) {
                 <div class="field">
                     <label class="label">Context</label>
                     <div class="control">
-                        <textarea class="textarea" data-field="context" placeholder="Context">${htmlDecode(context)}</textarea>
+                        <textarea class="textarea" data-field="context" placeholder="Context">${context}</textarea>
                     </div>
                 </div>
                 <div class="field">
                     <label class="label">Rationale</label>
                     <div class="control">
-                        <textarea class="textarea" data-field="rationale" placeholder="Rationale">${htmlDecode(rationale)}</textarea>
+                        <textarea class="textarea" data-field="rationale" placeholder="Rationale">${rationale}</textarea>
                     </div>
                 </div>
                 <div class="control">
-                    <button class="button is-link" data-id=${htmlDecode(uid)} onclick="mismappingSave(this)">Save</button>
-                    <button class="button is-danger" data-id=${htmlDecode(uid)} onclick="mismappingDelete(this)">Delete</button>
+                    <button class="button is-link" data-id="${uid}" onclick="mismappingSave(this)">Save</button>
+                    <button class="button is-danger" data-id="${uid}" onclick="mismappingDelete(this)">Delete</button>
                 </div>
             </div>
         </div>
@@ -447,14 +416,11 @@ function buildSidebar(openTabs = []) {
             version: encodeURI($("#versionSelect").val()),
         },
         success: function (res) {
-// XSS protection            
-            // let aside = $('<aside class="menu sidebar"></aside>');
-            let aside = '&lt;aside class="menu sidebar"&gt;&lt;/aside&gt ';
+            let aside = $('<aside class="menu sidebar"></aside>');
             for (const tactic of res) {
                 let tactic_id = tactic.tactic_id;
                 let tactic_name = tactic.tactic_name;
-                // let technique_ul = $('<ul class="menu-list" style="display: none;"></ul>');
-                let technique_ul = htmlEncode('<ul class="menu-list" style="display: none;"></ul>');
+                let technique_ul = $('<ul class="menu-list" style="display: none;"></ul>');
 
                 // sort and modify the technique list to fit the sidebar
                 // groups the subtechniques by parent technique, then by tactic
@@ -484,58 +450,49 @@ function buildSidebar(openTabs = []) {
                     // if there is only 1 technique, then we can just append the technique to the menu
                     if (value.length == 1) {
                         technique_name = value[0].technique_name;
-                        // li = $(
-                        //     `<li name="${key}"><a name="${key}" data-name="${key} (${technique_name})" onclick="preFillForm(this)">${key} (${technique_name})</a></li>`
-                        li = htmlEncode(`
-                            <li name="${key}"><a name="${key}" data-name="${key} (${technique_name})" onclick="preFillForm(this)">${key} (${technique_name})</a></li>`);
+                        li = $(
+                            `<li name="${key}"><a name="${key}" data-name="${key} (${technique_name})" onclick="preFillForm(this)">${key} (${technique_name})</a></li>`
+                        );
                     } else {
                         // if the technique has subtechniques, we have to create a sub menu item that'll also show the subtechniques under the parent technique
                         technique_name = value[0].technique_name;
                         let ul = $(`<ul></ul>`);
-                        // let ul = htmlEncode(<ul></ul>);
 
-                        // li = $(`
-                        //     <li name="${key}">
-                        //         <a name="${key}" data-name="${key} (${technique_name})" onclick="preFillForm(this)">${key} (${technique_name})</a>
-                        //     </li>
-                        li = htmlEncode(`
+                        li = $(`
                             <li name="${key}">
                                 <a name="${key}" data-name="${key} (${technique_name})" onclick="preFillForm(this)">${key} (${technique_name})</a>
-                            </li>`
-                        );
+                            </li>
+                        `);
                         for (const technique of value) {
                             let technique_id = technique.technique_id;
                             technique_name = technique.technique_name;
                             if (technique.technique_id !== key) {
                                 ul.append(
-                                    htmlEncode(`
-                                    <li name="${technique_id}"><a name="${technique_id}" data-name="${technique_id} (${technique_name})" onclick="preFillForm(this)">${technique_id} (${technique_name})</a></li>`
-                                    )
+                                    $(`
+                                    <li name="${technique_id}"><a name="${technique_id}" data-name="${technique_id} (${technique_name})" onclick="preFillForm(this)">${technique_id} (${technique_name})</a></li>
+                                `)
                                 );
                             }
                         }
-                       (htmlDecode(li)).append(ul);
+                        li.append(ul);
                     }
-                    (htmlDecode(technique_ul)).append(li);
+                    technique_ul.append(li);
                 }
 
-                let enc = htmlEncode(`
+                aside.append(
+                    $(`
                     <div name="${tactic_id}">
                         <p class="menu-label">
                             <a onclick="toggleSubMenu(this)">${tactic_id} (${tactic_name})<span class="icon is-right"><i class="mdi mdi-18px mdi-menu-down"></i></span></a>
                         </p>
-                    </div>`
-                )
-
-                (htmlDecodeTag(aside)).append(
-                    (htmlDecode(enc)).append(htmlDecode(technique_ul))
+                    </div>
+                `).append(technique_ul)
                 );
             }
             $("#sideBar").empty();
             $("#sideBar").append(aside);
             for (const tab of openTabs) {
-                // $(`div[name="${tab}"] > ul`).toggle();
-                $(`div[name=&quot;${tab}&quot;] &gt; ul`).toggle();
+                $(`div[name="${tab}"] > ul`).toggle();
             }
         },
     });

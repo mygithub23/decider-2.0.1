@@ -214,7 +214,8 @@ function searchFetchAndRender(version_change) {
     // 0-length case handled in front-end too
     if (search_string.length === 0) {
         resultsArea.empty();
-        resultsArea.append("<p>Please type a search query</p>");
+        // let resultA1 = htmlEncode("&lt;p&gt;Please type a search query&lt;/p&gt;")
+        resultsArea.append("&lt;p&gt;Please type a search query&lt;/p&gt;");
         return;
     }
 
@@ -255,13 +256,14 @@ function searchFetchAndRender(version_change) {
 
                 // no results
                 else {
-                    resultsArea.append(`<p>${search_used}<br><i>That search yielded no results</i></p>`);
+                    elseRes = htmlEncode(`<p>${search_used}<br><i>That search yielded no results</i></p>`)
+                    resultsArea.append(htmlDecode(resultsArea));
                 }
             }
 
             // search failure
             else {
-                resultsArea.append(`<p>${resp.status}</p>`);
+                resultsArea.append(`&lt;p&gt;${resp.status}&lt;/p&gt;`);
             }
 
             loadingIcon.hide();

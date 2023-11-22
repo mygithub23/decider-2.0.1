@@ -76,7 +76,9 @@ function initAnswerCards() {
                 answers[i].score = -i;
                 answers[i].label = `${answers[i].name} (${answers[i].id})`;
                 answers[i].highlights = {};
-                answers[i].content_text = $(answers[i].content).text();
+                // answers[i].content_text = (answers[i].content).text();
+                let ans = htmlEncode((answers[i].content).text())
+                answers[i].content_text = htmlDecode(ans);
             }
             question.answer_data = answers;
             question.answer_view = answers;
@@ -98,15 +100,15 @@ function initAnswerCards() {
 
 function templateAndHighlightAnswer(ans_data) {
     // Render card with template
-    var ans_card = $(answerTemplate(ans_data));
+    var ans_card = htmlEncode(answerTemplate(ans_data));
 
     // Highlight label and content sections for matched terms
     if ("label" in ans_data.highlights)
-        ans_card.find(".ans-label").mark(ans_data.highlights.label, question.markjs_opts);
+        (htmlDecode(ans_card)).find(".ans-label").mark(ans_data.highlights.label, question.markjs_opts);
     if ("content_text" in ans_data.highlights)
-        ans_card.find(".ans-content").mark(ans_data.highlights.content_text, question.markjs_opts);
+    (htmlDecode(ans_card)).find(".ans-content").mark(ans_data.highlights.content_text, question.markjs_opts);
 
-    return ans_card;
+    return (htmlDecode(ans_card));
 }
 
 function gotoAnswerPage(page_num) {
@@ -116,26 +118,26 @@ function gotoAnswerPage(page_num) {
     // Start page has content changed in-place: gotoAnswerPage(1) is called on page load
     if (question.index === "start") {
         // Holds all answer cards
-        var grid = $("<div></div>");
+        var grid = htmlEncode("<div></div>");
 
         // For all answer cards we have
         for (var i = 0; i < answers_view.length; i++) {
             // Create a new row for each 3 cards, add to master holder
             if (i % 3 === 0) {
-                var row = $('<div class="columns"></div>');
-                grid.append(row);
+                var row = htmlEncode('<div class="columns"></div>');
+                (htmlDecode(grid)).append(htmlDecode(row));
             }
 
             // Wrap answer card with column div
-            var piece = $('<div class="column is-one-third tactic-column"></div>');
-            piece.append(templateAndHighlightAnswer(answers_view[i]));
+            var piece = htmlEncode('<div class="column is-one-third tactic-column"></div>');
+            (htmlDecode(piece)).append(templateAndHighlightAnswer(answers_view[i]));
 
             // Add chunk to current row
-            grid.children().last().append(piece);
+            (htmlDecode(grid)).children().last().append(htmlDecode(piece));
         }
 
         $("#answer-list").empty();
-        $("#answer-list").append(grid);
+        $("#answer-list").append(htmlDecode(grid));
 
         return;
     }
@@ -150,13 +152,13 @@ function gotoAnswerPage(page_num) {
 
     // [Page Nav Bar] Calc total # of pages, fill list with page buttons, clear current, repopulate
     var total_pages = Math.ceil(answers_view.length / PER_PAGE);
-    var page_list = $("<ul>", { class: "pagination-list" });
+    var page_list = htmlEncode("<ul>", { class: "pagination-list" });
     for (var cur_page = 1; cur_page <= total_pages; cur_page++) {
-        page_list.append($(pageButtonTemplate(cur_page, cur_page === page_num)));
+        (htmlDecode(page_list)).append($(pageButtonTemplate(cur_page, cur_page === page_num)));
     }
     var answer_nav = $("#answer-nav");
     answer_nav.empty();
-    answer_nav.append(page_list);
+    answer_nav.append(htmlDecode(page_list));
 }
 
 function questionRenderFrontendSearch(answer_data) {
@@ -263,7 +265,8 @@ function questionRenderBackendSearchResponse(answer_data, searchResponse) {
     if ("results" in searchResponse) {
         // there were results -> set status and re-order / highlight cards
         if (Object.keys(searchResponse.results).length > 0) {
-            $("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}`);
+            let searchRsp = htmlEncode(`<b>Search Used:</b> ${searchResponse.status}`)
+            $("#ans-search-status").html(htmlDecode(searchRsp));
 
             // update answer cards with search result scores
             _.forEach(answer_data, function (answerEntry) {
@@ -300,7 +303,8 @@ function questionRenderBackendSearchResponse(answer_data, searchResponse) {
     // bad search query
     else {
         // display error status in red
-        $("#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span>`);
+        let badSearch = htmlEncode(`<span style="color: red;">${searchResponse.status}</span>`);
+        $("#ans-search-status").html(htmlDecode(badSearch));
 
         // don't re-order / highlight answers
         question.answer_view = answer_data;

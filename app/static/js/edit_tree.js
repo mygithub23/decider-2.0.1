@@ -28,6 +28,25 @@ window.jump_to_id = {
     the second content container will
 
 */
+
+// ------ Fix for XSS vulnerabilities
+
+function htmlDecode(input) {
+    const textArea = document.createElement("textarea");
+    textArea.innerHTML = input;
+    return textArea.value;
+}
+function htmlEncode(input) {
+    const textArea = document.createElement("textarea");
+    textArea.innerText = input;
+    return textArea.innerHTML.split("<br>").join("\n");
+}
+
+function htmlDecodeTag(input) {
+    let doc = new DOMParser().parseFromString(input, "text/html");
+    return doc.documentElement.textContent;
+}
+
 // function to open tab when clicking on the actual tab
 function openTab(liObj, tab, level) {
     // ajax request ensures that each tab open gets fresh content
@@ -198,14 +217,17 @@ function buildInnerContainer(index, data) {
 // function to build the tabs - used for the second tab since the first one will not be changing
 function buildTabs(index, data) {
     let sub_tab = $(`<div class="tabs is-centered" id="tabs2"></div>`);
-    let ul = $("<ul></ul>");
-    ul.append($(`<li name="base" class="is-active" onclick="openTab(this,'${index}',2)"><a>base</a></li>`));
+    // let ul = $("<ul></ul>");
+    let ul = htmlEncode("<ul></ul>");
+    (htmlDecode(ul)).append($(`<li name="base" class="is-active" onclick="openTab(this,'${index}',2)"><a>base</a></li>`));
     for (const item of data.data) {
         if (item.has_children) {
-            let li = $(`<li name="${item.id}" onclick="openTab(this,'${index}.${item.id}',2)"><a>${item.id}</a></li>`);
+            // let li = $(`<li name="${item.id}" onclick="openTab(this,'${index}.${item.id}',2)"><a>${item.id}</a></li>`);
+            let li = htmlEncode(
+                `<li name="${item.id}" onclick="openTab(this,'${index}.${item.id}',2)"><a>${item.id}</a></li>`);
             ul.append(li);
         }
-        sub_tab.append(ul);
+        sub_tab.append(htmlDecode(ul));
     }
     return sub_tab;
 }
@@ -213,17 +235,18 @@ function buildTabs(index, data) {
 // function to build the answer section
 // this can be subtechnique answers or technique answers - depending on which tab the user is at
 function buildSectionAnswer(data) {
-    let section_answers = $('<section class="section"><h1 class="title">Answer Text</h1></section>');
+    // let section_answers = $('<section class="section"><h1 class="title">Answer Text</h1></section>');
+    let section_answers = htmlEncode('<section class="section"><h1 class="title">Answer Text</h1></section>');
     for (const item of data.data) {
         let mismapping = false;
         if (/^T[0-9]{4}/.test(item.id)) {
             mismapping = true;
         }
-        section_answers.append(
+        (htmlDecode(section_answers)).append(
             createEditBox(`${item.id} (${item.name})`, item.answer_edit, item.answer_view, "answer", mismapping)
         );
     }
-    return section_answers;
+    return htmlDecode(section_answers);
 }
 
 // function to build the editing and rendering box
@@ -239,7 +262,7 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
             ["tactic", tactic],
             ["index", index]
         ]).toString();
-        mismap_element = $(`<a href="/edit/mismapping?${mismapLinkParams}">Edit Mismappings</a>`);
+        mismap_element = htmlEncode(`<a href="/edit/mismapping?${mismapLinkParams}">Edit Mismappings</a>`);
     }
 
     // ATT&CK identifier, can also be "start"
@@ -248,7 +271,7 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
 
     // start box cannot be edited - fixed text
     if (attack_id === "start") {
-        box = $(`
+        box = htmlEncode(`
         <div class="box">
             <h6 class="title is-6">${attack_id}</h6>
             <div class="columns">
@@ -256,13 +279,13 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
                     <div id="${attack_id}-render" class="md-content">${view_text}</div>
                 </div>
             </div>
-        </div>
-        `);
+        </div>`
+        );
     }
 
     // others are editable
     else {
-        box = $(`
+        box = htmlEncode(`
         <div id='${attack_id}' class="box">
             <h6 class="title is-6">${label}</h6>
             <div class="columns">
@@ -279,8 +302,8 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
         `);
     }
 
-    box.append(mismap_element);
-    return box;
+    (htmlDecode(box)).append(htmlDecode(mismap_element));
+    return htmlDecode(box);
 }
 
 // function to update content on each key press
@@ -292,6 +315,8 @@ var updateContent = _.debounce(function (elem) {
         text: textarea.val(),
         version: $("#versionSelect").val(),
     };
+    
+    let id1 = htmlEncode(`[id="${textarea.data("id")}-render"]`).html(res.name);
     $.ajax({
         type: "POST",
         url: `/edit/tree/api`,
@@ -344,13 +369,13 @@ function populateSidebar() {
                 });
 
                 // form chunk and add
-                let tacticChunk = $(`
+                let tacticChunk = htmlEncode(`
                     <p name="${chunk.tactic_id}" class="menu-label">${chunk.tactic_id} (${chunk.tactic_name})<p>
                     <ul class="menu-list">
                         ${_.join(missingTechRows, "")}
                     </ul>
                 `);
-                $("#missingContent").append(tacticChunk);
+                $("#missingContent").append(htmlDecode(tacticChunk));
             }
         },
     });
@@ -398,9 +423,9 @@ function setErrorJumpToIDStatus(content) {
 
 // display default help-text in JumpToID
 function resetJumpToIDStatus() {
-    let statusSpan = $("#editing-jump-to-id-status");
-    statusSpan.css("color", "black");
-    statusSpan.html("Tnnnn<u><b>.</b>nnn</u> or Tnnnn<u><b>/</b>nnn</u> allowed");
+    let statusSpan = htmlEncode("#editing-jump-to-id-status");
+    (htmlDecode(statusSpan)).css("color", "black");
+    (htmlDecode(statusSpan)).html("Tnnnn<u><b>.</b>nnn</u> or Tnnnn<u><b>/</b>nnn</u> allowed");
 }
 
 // JumpToID button callback

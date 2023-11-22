@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function miniSearchTechniqueTemplate(t) {
-    return $(`
+    return htmlEncode(`
     <a href="${t.url}" class="dropdown-item">
         <div>
             <p class="search-result-p">
@@ -94,15 +94,17 @@ var miniSearch = _.debounce(function (search) {
 
             // Add warning to full search option if there were no results
             if (techniques.length === 0) {
+                let sbc=htmlEncode("#searchBarCompletion > .dropdown-content > .dropdown-item-selected > div > .search-result-p");
+                let mini1 = htmlEncode("<br><i>(no mini search results)</i>")
                 $(
-                    "#searchBarCompletion > .dropdown-content > .dropdown-item-selected > div > .search-result-p"
-                ).append("<br><i>(no mini search results)</i>");
+                    htmlDecode(sbc)
+                ).append(htmlDecode(mini1));
             }
 
             // On results: add entries
             else {
                 for (const tech of techniques) {
-                    let miniSearchRow = miniSearchTechniqueTemplate(tech);
+                    let miniSearchRow = htmlDecode(miniSearchTechniqueTemplate(tech));
                     $("#searchBarCompletion > .dropdown-content").append(miniSearchRow);
                 }
             }
