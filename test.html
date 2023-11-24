@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title of the document</title>
+  </head>
+  <body>
+    <div id="encoded"></div>
+    <div id="decoded"></div>
+    
+    <div id="tar1"></div>
+    <div id="tar2"></div>
+    <div id="tar3"></div>
+    <div id="tar4"></div>    
+    <div id="id1"></div> 
+    <div id="id2"></div>
+    &lt;p&gt;testing546&lt;/p&gt;
+    
+    <!-- <div attr="$varUnsafe"> -->
+    <!-- <div attr=”*x” onblur=”alert(1)*”> // Example Attack -->
+    <script>
+      let string1 = "Html & Css & Javascript";
+      let string2 = "Html &amp; Css &amp; Javascript";
+      function htmlDecode(input) {
+        const textArea = document.createElement("textarea");
+        textArea.innerHTML = input;
+        return textArea.value;
+      }
+      function htmlEncode(input) {
+        const textArea = document.createElement("textarea");
+        textArea.innerText = input;
+        return textArea.innerHTML.split("<br>").join("\n");
+      }
+      document.getElementById("encoded").innerText = htmlEncode(string1);
+      document.getElementById("decoded").innerText = htmlDecode1(string2);
+
+      let tab = "test-tab66"
+      //let tab =(`div[name="${tab}"] > ul`).toggle();
+      let test1 = "<img src='dummy' onerror='alert(/xss/)'>";
+      let test2 = "&lt;img src='img.jpg'&gt;---------- 2"
+      let test3 = '&lt;aside class=&quot;menu sidebar&quot;&gt;&lt;/aside&gt ---------- 3'
+      let test4 = "`div[name=&quot;${tab}&quot;] &gt; ul`"
+      let id1 = htmlEncode('<section class="section"><h1 class="title">Answer Text1</h1></section>');
+      let id2 = htmlEncode('<section class="section"><h1 class="title">Answer Text2</h1></section>');
+      let tab1 = `&lt;p&gt;${tab}&lt;/p&gt`;
+     // htmlDecode1("<img src='dummy' onerror='alert(/xss/)'>"); 
+
+      function htmlDecode1(input) {
+        let doc = new DOMParser().parseFromString(input, "text/html");
+        return doc.documentElement.textContent;
+      //  alert(htmlDecode1("&lt;img src='img.jpg'&gt;")); 
+        // "<img src='myimage.jpg'>"
+       // alert(htmlDecode1("<img src='dummy' onerror='alert(/xss/)'>")); // ""
+    }   
+   document.getElementById("tar1").innerText = htmlDecode1(test1);   
+   document.getElementById("tar2").innerText = htmlDecode1(test2);
+   document.getElementById("tar3").innerText = htmlDecode1(test3);   
+   document.getElementById("tar4").innerText = htmlDecode1(test4);
+   document.getElementById("id1").innerText = htmlDecode(id1);
+   document.getElementById("id2").innerText = tab;
+    </script>
+    <p> End</p>
+  </body>
+</html>
+
+<!-- & &amp;
+< &lt;
+> &gt;
+" &quot;
+' &#x27; --></img>
