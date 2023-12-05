@@ -12,6 +12,11 @@ import bcrypt
 from app.routes.utils import DictValidator, email_validator, password_validator
 from app.routes.utils import ErrorDuringHTMLRoute, ErrorDuringAJAXRoute, wrap_exceptions_as
 
+# from flask import escape
+
+# install MarkupSafe --> pip install -U MarkupSafe
+from markupsafe import  escape
+
 logger = logging.getLogger(__name__)
 admin_ = Blueprint("admin_", __name__, template_folder="templates")
 
@@ -60,12 +65,19 @@ def admin_user_post():
     }
     check = DictValidator(data, spec)
     if not check.success:
-        logger.error(f"request failed - malformed fields: {check.errors}")
+        logger.error(f"request failed - malformed fields: %s ", escape({check.errors})) 
+        # logger.error(f"request failed - malformed fields: %s ", {check.errors}) 
         return jsonify(message="\n".join(check.errors)), 400
-
-    email = data["email"].lower()
-    password = data["password"]
-    role_id = data["role_id"]
+    # f"Hello, {escape(name)}!"
+    # return f'Subpath {escape(subpath)}'
+    
+    # email = data["email"].lower()
+    # password = data["password"]
+    # role_id = data["role_id"]
+    
+    email = escape(data["email"].lower())
+    password = escape(data["password"])
+    role_id = escape(data["role_id"])
 
     # ensure email is new
     logger.debug("querying Users to see if the specified email is already in-use")
@@ -123,13 +135,18 @@ def admin_user_patch():
     }
     check = DictValidator(data, spec)
     if not check.success:
-        logger.error(f"request failed - fields malformed: {check.errors}")
+        # logger.error(f"request failed - fields malformed: {check.errors}")
+        logger.error(f"request failed - malformed fields: %s ", escape({check.errors}))
         return jsonify(message="\n".join(check.errors)), 400
 
-    email = data["email"].lower()
-    password = data["password"]
-    role_id = data["role_id"]
+    # email = data["email"].lower()
+    # password = data["password"]
+    # role_id = data["role_id"]
 
+    email = escape(data["email"].lower())
+    password = escape(data["password"])
+    role_id = escape(data["role_id"])
+    
     # ensure email is of an existing user
     logger.debug("querying Users to ensure the email exists")
     user = User.query.filter_by(email=email).first()
@@ -166,15 +183,19 @@ def admin_user_patch():
         hashed_pass = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
         user.password = hashed_pass.decode("utf-8")
 
-    logger.debug(f"attempting to update {user.email}'s details: {role_change}{pass_change}")
+    # logger.debug(f"attempting to update {user.email}'s details: {role_change}{pass_change}")
+    logger.debug(f"attempting to update %s details: %s %s", escape({user.email}), escape({role_change}),escape({pass_change}))
+    
     try:
         db.session.commit()
 
     except Exception:
         db.session.rollback()
         logger.exception(f"failed to update {user.email}'s details: {role_change}{pass_change}")
+        logger.exception(f"failed to update %s details: %s %s", escape({user.email}), escape({role_change}),escape({pass_change}))
         return jsonify(message="Unable to save user."), 400
     logger.info(f"successfully updated {user.email}'s details: {role_change}{pass_change}")
+    logger.info(f"failed to update %s details: %s %s", escape({user.email}), escape({role_change}),escape({pass_change}))
     return jsonify(email=user.email), 200
 
 
@@ -243,3 +264,5 @@ def admin_user_delete():
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+
+ 
