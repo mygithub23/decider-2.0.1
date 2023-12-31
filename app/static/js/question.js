@@ -31,19 +31,52 @@ $(document).ready(function () {
     initAnswerCards();
 });
 
+//----------------------------------------------------------------------------------------------------------------------
+// function to sanitize HTML content
+var sanitizer = {};
+
+(function($) {
+    function trimAttributes(node) {
+        $.each(node.attributes, function() {
+            var attrName = this.name;
+            var attrValue = this.value;
+
+            // remove attribute name start with "on", possible unsafe,
+            // for example: onload, onerror...
+            //
+            // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
+            // for example href="javascript:alert(1)"
+            if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
+                $(node).removeAttr(attrName);
+            }
+        });
+    }
+
+    function sanitize(html) {
+
+
+        var output = $($.parseHTML('<div>' + html + '</div>', null, false));
+        output.find('*').each(function() {
+            trimAttributes(this);
+        });
+        return output.html();
+    }
+
+    sanitizer.sanitize = sanitize;
+})(jQuery);
 // ---------------------------------------------------------------------------------------------------------------------
 
-var debounced_platformMatchHeight = _.debounce(platformMatchHeight, 150);
+const debounced_platformMatchHeight = _.debounce(platformMatchHeight, 150);
 
 function platformMatchHeight() {
     // aligns platform filter column to height of answer cards
 
-    var navBar = $(".navbarSection");
-    var navTop = navBar.position().top;
-    var navHeight = navBar.outerHeight(true);
+    const navBar = $(".navbarSection");
+    const navTop = navBar.position().top;
+    const navHeight = navBar.outerHeight(true);
 
-    var ansHeader = $("#answerListHeader");
-    var ansHeaderBottom = ansHeader.position().top + ansHeader.outerHeight(true);
+    const ansHeader = $("#answerListHeader");
+    const ansHeaderBottom = ansHeader.position().top + ansHeader.outerHeight(true);
 
     $("#filterSpacing").height(ansHeaderBottom - (navTop + navHeight));
 }
@@ -58,7 +91,7 @@ function initAnswerCards() {
     syncFilters("data_source");
 
     // GET the answer card data via API for the question specified by the <div>
-    var ans_list = $("#answer-list");
+    const ans_list = $("#answer-list");
     question.index = ans_list.data("index");
     question.version = ans_list.data("version");
     $.ajax({
@@ -74,11 +107,17 @@ function initAnswerCards() {
             // Add default score to entries so they maintain original display order unless scored by MiniSearch; save
             for (let i = 0; i < answers.length; i++) {
                 answers[i].score = -i;
-                answers[i].label = `${answers[i].name} (${answers[i].id})`;
+                answers[i].label = sanitizer.sanitize(`${answers[i].name} (${answers[i].id})`);
                 answers[i].highlights = {};
-                // answers[i].content_text = (answers[i].content).text();
-                let ans = htmlEncode((answers[i].content).text())
-                answers[i].content_text = htmlDecode(ans);
+                answers[i].content_text = sanitizer.sanitize($(answers[i].content).text());
+
+                score = sanitizer.sanitize( answers[i].score );
+                label = sanitizer.sanitize( answers[i].label );
+                highlights = sanitizer.sanitize( answers[i].highlights );
+                content_text = sanitizer.sanitize( answers[i].content_text );
+
+                console.log("score: " + score + ", label: " + label + ", highlights: " + highlights + ", content_text: " + content_text + "/n"); 
+                
             }
             question.answer_data = answers;
             question.answer_view = answers;
@@ -100,75 +139,78 @@ function initAnswerCards() {
 
 function templateAndHighlightAnswer(ans_data) {
     // Render card with template
-    var ans_card = htmlEncode(answerTemplate(ans_data));
+    const ans_card = $(sanitizer.sanitize(answerTemplate(ans_data)));
+
+    console.log("(answerTemplate(ans_data): " + answerTemplate(ans_data))
+    console.log("sanitizer.sanitize(answerTemplate(ans_data)): " + sanitizer.sanitize(answerTemplate(ans_data)))
 
     // Highlight label and content sections for matched terms
     if ("label" in ans_data.highlights)
-        (htmlDecode(ans_card)).find(".ans-label").mark(ans_data.highlights.label, question.markjs_opts);
+        ans_card.find(".ans-label").mark(ans_data.highlights.label, question.markjs_opts);
     if ("content_text" in ans_data.highlights)
-    (htmlDecode(ans_card)).find(".ans-content").mark(ans_data.highlights.content_text, question.markjs_opts);
+        ans_card.find(".ans-content").mark(ans_data.highlights.content_text, question.markjs_opts);
 
-    return (htmlDecode(ans_card));
+    return ans_card;
 }
 
 function gotoAnswerPage(page_num) {
-    var PER_PAGE = 5; // Configurable
-    var answers_view = question.answer_view;
+    const PER_PAGE = 5; // Configurable
+    const answers_view = question.answer_view;
 
     // Start page has content changed in-place: gotoAnswerPage(1) is called on page load
     if (question.index === "start") {
         // Holds all answer cards
-        var grid = htmlEncode("<div></div>");
-
+        const grid =  $(sanitizer.sanitize("<div></div>"));
         // For all answer cards we have
         for (var i = 0; i < answers_view.length; i++) {
             // Create a new row for each 3 cards, add to master holder
             if (i % 3 === 0) {
-                var row = htmlEncode('<div class="columns"></div>');
-                (htmlDecode(grid)).append(htmlDecode(row));
+                const row = $(sanitizer.sanitize('<div class="columns"></div>'));
+                
+                grid.append(row);
             }
 
             // Wrap answer card with column div
-            var piece = htmlEncode('<div class="column is-one-third tactic-column"></div>');
-            (htmlDecode(piece)).append(templateAndHighlightAnswer(answers_view[i]));
+            const piece = $(sanitizer.sanitize('<div class="column is-one-third tactic-column"></div>'));
+            piece.append(templateAndHighlightAnswer(answers_view[i]));
 
             // Add chunk to current row
-            (htmlDecode(grid)).children().last().append(htmlDecode(piece));
+            grid.children().last().append(piece);
         }
 
         $("#answer-list").empty();
-        $("#answer-list").append(htmlDecode(grid));
+        $("#answer-list").append(grid);
 
         return;
     }
 
     // [Answer Cards] Get answer data, trim to current view, clear cards, repopulate
-    var current_answers = _.slice(answers_view, PER_PAGE * (page_num - 1), PER_PAGE * page_num);
-    var answer_list = $("#answer-list");
+    const current_answers = _.slice(answers_view, PER_PAGE * (page_num - 1), PER_PAGE * page_num);
+    const answer_list = $("#answer-list");
     answer_list.empty();
     _.forEach(current_answers, function (ans_data) {
         answer_list.append(templateAndHighlightAnswer(ans_data));
     });
 
     // [Page Nav Bar] Calc total # of pages, fill list with page buttons, clear current, repopulate
-    var total_pages = Math.ceil(answers_view.length / PER_PAGE);
-    var page_list = htmlEncode("<ul>", { class: "pagination-list" });
+    const total_pages = Math.ceil(answers_view.length / PER_PAGE);
+    const page_list = $(sanitizer.sanitize("<ul>", { class: "pagination-list" }));
     for (var cur_page = 1; cur_page <= total_pages; cur_page++) {
-        (htmlDecode(page_list)).append($(pageButtonTemplate(cur_page, cur_page === page_num)));
+        page_list.append($(pageButtonTemplate(cur_page, cur_page === page_num)));
     }
-    var answer_nav = $("#answer-nav");
+    const answer_nav = $("#answer-nav");
     answer_nav.empty();
-    answer_nav.append(htmlDecode(page_list));
+    answer_nav.append(page_list);
 }
 
 function questionRenderFrontendSearch(answer_data) {
     // Terms are space-seperated chunks of text
-    var terms = _.filter(question.search_str.toLowerCase().split(" "), function (t) {
+    const terms = _.filter(question.search_str.toLowerCase().split(" "), function (t) {
         return t !== "";
     });
 
     // Excludes are terms that start with -, get base exclusion terms, keep non-empty
-    var excludes = _.remove(terms, function (t) {
+    const excludes = _.remove(terms, function (t) {
         return _.startsWith(t, "-");
     });
     excludes = _.map(excludes, function (t) {
@@ -178,12 +220,12 @@ function questionRenderFrontendSearch(answer_data) {
         return t !== "";
     });
 
-    var new_search = _.join(terms, " "); // Make new search string from positive associations
+    const new_search = _.join(terms, " "); // Make new search string from positive associations
 
     // Conduct fuzzy (+prefix) search against the "label"/"content_text" fields of the answer cards
-    var miniSearch = new MiniSearch({ fields: ["label", "content_text"], storeFields: ["label", "content_text"] });
+    const miniSearch = new MiniSearch({ fields: ["label", "content_text"], storeFields: ["label", "content_text"] });
     miniSearch.addAll(answer_data);
-    var results = miniSearch.search(new_search, {
+    const results = miniSearch.search(new_search, {
         prefix: (term) => term.length > 2,
         fuzzy: (term) => (term.length > 2 ? 0.15 : null),
 
@@ -205,7 +247,7 @@ function questionRenderFrontendSearch(answer_data) {
         // Restructure match data that MiniSearch returns
         // Instead of specifying terms and where they exist ...
         //     We specify places and what terms exist in them
-        var field_to_terms = {};
+        const field_to_terms = {};
         for (const [term, fields] of Object.entries(entry.match)) {
             _.forEach(fields, function (field) {
                 if (field in field_to_terms) field_to_terms[field].push(term);
@@ -214,7 +256,7 @@ function questionRenderFrontendSearch(answer_data) {
         }
 
         // Overwrite default score with the actual search score
-        var matched_answer = _.filter(answer_data, function (a) {
+        const matched_answer = _.filter(answer_data, function (a) {
             return a.id === entry.id;
         })[0];
 
@@ -265,8 +307,7 @@ function questionRenderBackendSearchResponse(answer_data, searchResponse) {
     if ("results" in searchResponse) {
         // there were results -> set status and re-order / highlight cards
         if (Object.keys(searchResponse.results).length > 0) {
-            let searchRsp = htmlEncode(`<b>Search Used:</b> ${searchResponse.status}`)
-            $("#ans-search-status").html(htmlDecode(searchRsp));
+            $(sanitizer.sanitize("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}`));
 
             // update answer cards with search result scores
             _.forEach(answer_data, function (answerEntry) {
@@ -290,10 +331,10 @@ function questionRenderBackendSearchResponse(answer_data, searchResponse) {
 
         // no matches found -> just set status
         else {
-            $("#ans-search-status").html(`
+            $(sanitizer.sanitize("#ans-search-status").html(`
                 <b>Search Used:</b> ${searchResponse.status}<br>
                 <span style="color: red;"><i>No matches - cards will stay in their default order</i></span>
-            `);
+            `));
         }
 
         question.answer_view = answer_data;
@@ -303,8 +344,7 @@ function questionRenderBackendSearchResponse(answer_data, searchResponse) {
     // bad search query
     else {
         // display error status in red
-        let badSearch = htmlEncode(`<span style="color: red;">${searchResponse.status}</span>`);
-        $("#ans-search-status").html(htmlDecode(badSearch));
+        $(sanitizer.sanitize("#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span>`));
 
         // don't re-order / highlight answers
         question.answer_view = answer_data;
@@ -314,15 +354,15 @@ function questionRenderBackendSearchResponse(answer_data, searchResponse) {
 
 function questionRender() {
     // clone data for transform, get filters of cards to remove
-    var answer_data = JSON.parse(JSON.stringify(question.answer_data));
-    var platform_selections = getChkSelections("platform");
-    var data_source_selections = getChkSelections("data_source");
+    const answer_data = JSON.parse(JSON.stringify(question.answer_data));
+    const platform_selections = getChkSelections("platform");
+    const data_source_selections = getChkSelections("data_source");
 
     // front-end handles removing filtered-out cards
     if (platform_selections.length > 0) {
         // Remove all answers that share no platforms with selected
         _.remove(answer_data, function (answer) {
-            var answer_platforms = _.split(answer.platforms, ",");
+            const answer_platforms = _.split(answer.platforms, ",");
             if (_.intersection(platform_selections, answer_platforms).length === 0) {
                 return true;
             }
@@ -331,7 +371,7 @@ function questionRender() {
     if (data_source_selections.length > 0) {
         // Remove all answers that share no platforms with selected
         _.remove(answer_data, function (answer) {
-            var data_source_platforms = _.split(answer.data_sources, ",");
+            const data_source_platforms = _.split(answer.data_sources, ",");
             if (_.intersection(data_source_selections, data_source_platforms).length === 0) {
                 return true;
             }
@@ -369,57 +409,60 @@ function answerTemplate(answer) {
             matchLocations = "Description / SubTechniques";
         }
 
-        additionalMatches = `<p class="ans-additional-matches"><i>
+        additionalMatches = sanitizer.sanitize(
+            `<p class="ans-additional-matches"><i>
         <u>Matches in ${matchLocations}:</u> ${_.join(answer.highlights.additional, ", ")}
-        </i><p>`;
+        </i><p>`);
     }
 
-    return `<div class="card answer box is-flex-grow-1" data-tech-id="${answer.id}">
-        <div class="columns">
-            <div class="column">
-                <a target="_blank" rel="noreferrer noopener" class="ans-url" href="${answer.url}">
-                    <span class="ans-label">${answer.name} (${answer.id})</span>
-                    <span class="icon is-small">
-                        <i class="mdi mdi-link"></i>
-                    </span>
-                </a>
-            </div>
-            <div class="column is-narrow count-column">
-                <a>
-                    <p class="ans-num">
-                        <span class="icon is-small equal-height">
-                            <i class="mdi mdi-file-tree-outline"></i>
+    return sanitizer.sanitize(`
+        <div class="card answer box is-flex-grow-1" data-tech-id="${answer.id}">
+            <div class="columns">
+                <div class="column">
+                    <a target="_blank" rel="noreferrer noopener" class="ans-url" href="${answer.url}">
+                        <span class="ans-label">${answer.name} (${answer.id})</span>
+                        <span class="icon is-small">
+                            <i class="mdi mdi-link"></i>
                         </span>
-                        ${answer.num}
-                    </p>
+                    </a>
+                </div>
+                <div class="column is-narrow count-column">
+                    <a>
+                        <p class="ans-num">
+                            <span class="icon is-small equal-height">
+                                <i class="mdi mdi-file-tree-outline"></i>
+                            </span>
+                            ${answer.num}
+                        </p>
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-content">
+                <a class="ans-path" href="${answer.path}">
+                    <!-- <p class="is-size-5 ans-text">answer.text</p> -->
+                    <div class="md-content ans-content is-size-5">
+                        ${answer.content}
+                    </div>
+                    ${additionalMatches}
                 </a>
             </div>
         </div>
-
-        <div class="card-content">
-            <a class="ans-path" href="${answer.path}">
-                <!-- <p class="is-size-5 ans-text">answer.text</p> -->
-                <div class="md-content ans-content is-size-5">
-                    ${answer.content}
-                </div>
-                ${additionalMatches}
-            </a>
-        </div>
-    </div>`;
+    `);
 }
 
 function pageButtonTemplate(page_num, is_current) {
     if (is_current) {
-        return `<button class="pagination-link is-current">${page_num}</button>`;
+        return sanitizer.sanitize(`<button class="pagination-link is-current">${page_num}</button>`);
     } else {
-        return `<button class="pagination-link" onclick="gotoAnswerPage(${page_num})">${page_num}</button>`;
+        return sanitizer.sanitize(`<button class="pagination-link" onclick="gotoAnswerPage(${page_num})">${page_num}</button>`);
     }
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Page interaction callbacks: filtering & search
 
-var questionUpdateSearchString = _.debounce(function (search_str) {
+const questionUpdateSearchString = _.debounce(function (search_str) {
     // clear status (for backend, not present for front-end)
     if ($("#ans-search-status").length) {
         $("#ans-search-status").html("");
@@ -430,22 +473,22 @@ var questionUpdateSearchString = _.debounce(function (search_str) {
     questionRender();
 }, 200);
 
-var questionClearPlatforms = _.debounce(function () {
+const questionClearPlatforms = _.debounce(function () {
     clearFilters("platform");
     questionRender();
 }, 50);
 
-var questionUpdatePlatforms = _.debounce(function (checkbox) {
+const questionUpdatePlatforms = _.debounce(function (checkbox) {
     updateFilters("platform", checkbox);
     questionRender();
 }, 50);
 
-var questionClearDataSources = _.debounce(function () {
+const questionClearDataSources = _.debounce(function () {
     clearFilters("data_source");
     questionRender();
 }, 50);
 
-var questionUpdateDataSources = _.debounce(function (checkbox) {
+const questionUpdateDataSources = _.debounce(function (checkbox) {
     updateFilters("data_source", checkbox);
     questionRender();
 }, 50);

@@ -37,6 +37,43 @@ $(document).ready(function () {
 
 // --------------------------------------------------------------------------------------------------------------------
 
+
+//----------------------------------------------------------------------------------------------------------------------
+// function to sanitize HTML content
+var sanitizer = {};
+
+(function($) {
+    function trimAttributes(node) {
+        $.each(node.attributes, function() {
+            var attrName = this.name;
+            var attrValue = this.value;
+
+            // remove attribute name start with "on", possible unsafe,
+            // for example: onload, onerror...
+            //
+            // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
+            // for example href="javascript:alert(1)"
+            if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
+                $(node).removeAttr(attrName);
+            }
+        });
+    }
+
+    function sanitize(html) {
+
+
+        var output = $($.parseHTML('<div>' + html + '</div>', null, false));
+        output.find('*').each(function() {
+            trimAttributes(this);
+        });
+        return output.html();
+    }
+
+    sanitizer.sanitize = sanitize;
+})(jQuery);
+
+// ---------------------------------------------------------------------------------------------------------------------
+
 function emptyCartString() {
     return '{ "title": null, "version": null, "entries": [] }';
 }
@@ -69,9 +106,9 @@ function updateCartTitle(title, version) {
     } else {
         let title_esc = _.escape(title);
         let version_esc = _.escape(version);
-        $("#cart-title").html(
+        $("#cart-title").html(sanitizer.sanitize(
             `${title_esc}<sub><span style="font-weight: normal; font-size: 0.75em;">(${version_esc})</span></sub>`
-        );
+        ));
     }
 }
 
@@ -150,7 +187,7 @@ function importCart() {
 function cartItemTemplate(version, i) {
     // i -> cart entry data
     let itemURL = `/question/${version}/${i.tactic}/${i.index.replace(".", "/")}`;
-    return $(`
+    return $(sanitizer.sanitize(`
         <li class="cartItem">
             <a href="${itemURL}">
                 ${_.escape(i.name)} (${_.escape(i.index)})<br>
@@ -163,7 +200,7 @@ function cartItemTemplate(version, i) {
                 </span>
             </a>
         </li>
-    `);
+    `));
 }
 
 // --------------------------------------------------------------------------------------------------------------------

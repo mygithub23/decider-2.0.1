@@ -1,4 +1,40 @@
+
+//----------------------------------------------------------------------------------------------------------------------
+// function to sanitize HTML content
+var sanitizer = {};
+
+(function($) {
+    function trimAttributes(node) {
+        $.each(node.attributes, function() {
+            var attrName = this.name;
+            var attrValue = this.value;
+
+            // remove attribute name start with "on", possible unsafe,
+            // for example: onload, onerror...
+            //
+            // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
+            // for example href="javascript:alert(1)"
+            if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
+                $(node).removeAttr(attrName);
+            }
+        });
+    }
+
+    function sanitize(html) {
+
+
+        var output = $($.parseHTML('<div>' + html + '</div>', null, false));
+        output.find('*').each(function() {
+            trimAttributes(this);
+        });
+        return output.html();
+    }
+
+    sanitizer.sanitize = sanitize;
+})(jQuery);
+
 // ---------------------------------------------------------------------------------------------------------------------
+
 // Mini Search Functionality
 
 $(document).ready(function () {
@@ -47,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function miniSearchTechniqueTemplate(t) {
-    return htmlEncode(`
+    return $(sanitizer.sanitize( `
     <a href="${t.url}" class="dropdown-item">
         <div>
             <p class="search-result-p">
@@ -56,7 +92,7 @@ function miniSearchTechniqueTemplate(t) {
             </p>
         </div>
     </a>
-    `);
+    `));
 }
 
 var miniSearch = _.debounce(function (search) {
@@ -82,29 +118,27 @@ var miniSearch = _.debounce(function (search) {
 
             // Add default (1st) option: run search as full search
             $("#searchBarCompletion > .dropdown-content").append(
-                $(`<a href="#" onclick="gotoFullSearch(); event.preventDefault();" class="dropdown-item dropdown-item-selected">
+                $(sanitizer.sanitize(`<a href="#" onclick="gotoFullSearch(); event.preventDefault();" class="dropdown-item dropdown-item-selected">
                     <div>
                         <p class="search-result-p">
                             <span class="tag is-link search-result-tag"><i class="mdi mdi-24px mdi-magnify" style="color: white;"></i></span>
                             <b><i>Run as a Full Technique Search</i></b>
                         </p>
                     </div>
-                </a>`)
+                </a>`))
             );
 
             // Add warning to full search option if there were no results
             if (techniques.length === 0) {
-                let sbc=htmlEncode("#searchBarCompletion > .dropdown-content > .dropdown-item-selected > div > .search-result-p");
-                let mini1 = htmlEncode("<br><i>(no mini search results)</i>")
-                $(
-                    htmlDecode(sbc)
-                ).append(htmlDecode(mini1));
+                $(sanitizer.sanitize(
+                    "#searchBarCompletion > .dropdown-content > .dropdown-item-selected > div > .search-result-p"
+                )).append(sanitizer.sanitize("<br><i>(no mini search results)</i>"));
             }
 
             // On results: add entries
             else {
                 for (const tech of techniques) {
-                    let miniSearchRow = htmlDecode(miniSearchTechniqueTemplate(tech));
+                    let miniSearchRow = miniSearchTechniqueTemplate(tech);
                     $("#searchBarCompletion > .dropdown-content").append(miniSearchRow);
                 }
             }

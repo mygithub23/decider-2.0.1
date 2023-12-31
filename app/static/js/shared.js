@@ -18,6 +18,43 @@ $(document).ready(function () {
     }
 });
 
+//----------------------------------------------------------------------------------------------------------------------
+// function to sanitize HTML content
+var sanitizer = {};
+
+(function($) {
+    function trimAttributes(node) {
+        $.each(node.attributes, function() {
+            var attrName = this.name;
+            var attrValue = this.value;
+
+            // remove attribute name start with "on", possible unsafe,
+            // for example: onload, onerror...
+            //
+            // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
+            // for example href="javascript:alert(1)"
+            if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
+                $(node).removeAttr(attrName);
+            }
+        });
+    }
+
+    function sanitize(html) {
+
+
+        var output = $($.parseHTML('<div>' + html + '</div>', null, false));
+        output.find('*').each(function() {
+            trimAttributes(this);
+        });
+        return output.html();
+    }
+
+    sanitizer.sanitize = sanitize;
+})(jQuery);
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+
 // --------------------------------------------------------------------------------------------------------------------
 // Bulma Toast Config
 
@@ -215,23 +252,25 @@ function spawnAlertModal(title, content) {
     let close_n_kill = `closeModal('#${modal_id}'); $('#${modal_id}').remove();`;
 
     // throw into DOM
-    $(document.body).append(`
-    <div class="modal is-active" id="${modal_id}">
-        <div class="modal-background" onclick="${close_n_kill}"></div>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">${_.escape(title)}</p>
-                <button class="delete" aria-label="close" onclick="${close_n_kill}"></button>
-            </header>
-            <section class="modal-card-body default-list">
-                ${_.escape(content)}
-            </section>
-            <footer class="modal-card-foot">
-                <button class="button is-info" onclick="${close_n_kill}">Ok</button>
-            </footer>
-        </div>
-    </div>
-    `);
+    $(document.body).append(
+        sanitizer.sanitize(`
+            <div class="modal is-active" id="${modal_id}">
+                <div class="modal-background" onclick="${close_n_kill}"></div>
+                <div class="modal-card">
+                    <header class="modal-card-head">
+                        <p class="modal-card-title">${_.escape(title)}</p>
+                        <button class="delete" aria-label="close" onclick="${close_n_kill}"></button>
+                    </header>
+                    <section class="modal-card-body default-list">
+                        ${_.escape(content)}
+                    </section>
+                    <footer class="modal-card-foot">
+                        <button class="button is-info" onclick="${close_n_kill}">Ok</button>
+                    </footer>
+                </div>
+            </div>
+        `)
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

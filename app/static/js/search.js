@@ -1,6 +1,44 @@
 window.full_search_string = "";
 
 // ---------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+// function to sanitize HTML content
+var sanitizer = {};
+
+(function($) {
+    function trimAttributes(node) {
+        $.each(node.attributes, function() {
+            var attrName = this.name;
+            var attrValue = this.value;
+
+            // remove attribute name start with "on", possible unsafe,
+            // for example: onload, onerror...
+            //
+            // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
+            // for example href="javascript:alert(1)"
+            if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
+                $(node).removeAttr(attrName);
+            }
+        });
+    }
+
+    function sanitize(html) {
+
+
+        var output = $($.parseHTML('<div>' + html + '</div>', null, false));
+        output.find('*').each(function() {
+            trimAttributes(this);
+        });
+        return output.html();
+    }
+
+    sanitizer.sanitize = sanitize;
+})(jQuery);
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
 // Full-Fat Search Page Functionality
 
 $(document).ready(function () {
@@ -100,72 +138,74 @@ function fullSearchTechniqueTemplate(t, wasLastClicked) {
         if (t.akas.length > 0) {
             akas = _.join(
                 _.map(t.akas, function (aka) {
-                    return `<span class="tag is-primary last-result-clicked-aka">${aka}</span>`;
+                    return sanitizer.sanitize(`<span class="tag is-primary last-result-clicked-aka">${aka}</span>`);
                 }),
                 ""
             );
-            tagSection = `<div class="tags">${akas}</div>`;
+            tagSection = sanitizer.sanitize(
+                `<div class="tags">${akas}</div>`
+            );
         }
 
-        return $(`
-        <div id="${cardId}" class="card answer box last-result-clicked">
+        return $(sanitizer.sanitize(`
+            <div id="${cardId}" class="card answer box last-result-clicked">
 
-            <div class="columns">
-                <div class="column">
-                    <a target="_blank" rel="noreferrer noopener" class="ans-url last-result-clicked-content" href="${t.attack_url}">
-                        <span class="ans-label">${cardLabel}</span>
-                        <span class="icon is-small">
-                            <i class="mdi mdi-link"></i>
+                <div class="columns">
+                    <div class="column">
+                        <a target="_blank" rel="noreferrer noopener" class="ans-url last-result-clicked-content" href="${t.attack_url}">
+                            <span class="ans-label">${cardLabel}</span>
+                            <span class="icon is-small">
+                                <i class="mdi mdi-link"></i>
+                            </span>
+                        </a>
+                    </div>
+                    <div class="column is-narrow">
+                        <span class="has-tooltip-bottom tooltip-bottom-leftshift" data-tooltip="This is the most recently clicked search result" style="z-index: 2;">
+                            <i class="mdi mdi-24px mdi-history last-result-clicked-content"></i>
                         </span>
+                    </div>
+                </div>
+
+                <div class="card-content">
+                    <a class="ans-path" data-techid="${cardId}" onClick="recordSearchResultClicked(this)" href="${t.internal_url}">
+                        <p class="is-size-5 ans-content">${desc}</p>
                     </a>
+                    ${tagSection}
                 </div>
-                <div class="column is-narrow">
-                    <span class="has-tooltip-bottom tooltip-bottom-leftshift" data-tooltip="This is the most recently clicked search result" style="z-index: 2;">
-                        <i class="mdi mdi-24px mdi-history last-result-clicked-content"></i>
-                    </span>
-                </div>
-            </div>
 
-            <div class="card-content">
-                <a class="ans-path" data-techid="${cardId}" onClick="recordSearchResultClicked(this)" href="${t.internal_url}">
-                    <p class="is-size-5 ans-content">${desc}</p>
-                </a>
-                ${tagSection}
             </div>
-
-        </div>
-        `);
+        `));
     } else {
         // Only form AKA tag section if there were any AKAs
         if (t.akas.length > 0) {
             akas = _.join(
                 _.map(t.akas, function (aka) {
-                    return `<span class="tag is-primary">${aka}</span>`;
+                    return sanitizer.sanitize(`<span class="tag is-primary">${aka}</span>`);
                 }),
                 ""
             );
-            tagSection = `<div class="tags">${akas}</div>`;
+            tagSection = sanitizer.sanitize(`<div class="tags">${akas}</div>`);
         }
 
-        return $(`
-        <div id="${cardId}" class="card answer box">
+        return $(sanitizer.sanitize(`
+            <div id="${cardId}" class="card answer box">
 
-            <a target="_blank" rel="noreferrer noopener" class="ans-url" href="${t.attack_url}">
-                <span class="ans-label">${cardLabel}</span>
-                <span class="icon is-small">
-                    <i class="mdi mdi-link"></i>
-                </span>
-            </a>
-
-            <div class="card-content">
-                <a class="ans-path" data-techid="${cardId}" onClick="recordSearchResultClicked(this)" href="${t.internal_url}">
-                    <p class="is-size-5 ans-content">${desc}</p>
+                <a target="_blank" rel="noreferrer noopener" class="ans-url" href="${t.attack_url}">
+                    <span class="ans-label">${cardLabel}</span>
+                    <span class="icon is-small">
+                        <i class="mdi mdi-link"></i>
+                    </span>
                 </a>
-                ${tagSection}
-            </div>
 
-        </div>
-        `);
+                <div class="card-content">
+                    <a class="ans-path" data-techid="${cardId}" onClick="recordSearchResultClicked(this)" href="${t.internal_url}">
+                        <p class="is-size-5 ans-content">${desc}</p>
+                    </a>
+                    ${tagSection}
+                </div>
+
+            </div>
+        `));
     }
 }
 
@@ -214,8 +254,7 @@ function searchFetchAndRender(version_change) {
     // 0-length case handled in front-end too
     if (search_string.length === 0) {
         resultsArea.empty();
-        // let resultA1 = htmlEncode("&lt;p&gt;Please type a search query&lt;/p&gt;")
-        resultsArea.append("&lt;p&gt;Please type a search query&lt;/p&gt;");
+        resultsArea.append(sanitizer.sanitize("<p>Please type a search query</p>"));
         return;
     }
 
@@ -242,7 +281,7 @@ function searchFetchAndRender(version_change) {
 
             // search success
             if ("techniques" in resp) {
-                let search_used = `<b>Search Used:</b> ${resp.status}`;
+                let search_used = sanitizer.sanitize(`<b>Search Used:</b> ${resp.status}`);
 
                 // results
                 if (resp.techniques.length > 0) {
@@ -256,14 +295,16 @@ function searchFetchAndRender(version_change) {
 
                 // no results
                 else {
-                    elseRes = htmlEncode(`<p>${search_used}<br><i>That search yielded no results</i></p>`)
-                    resultsArea.append(htmlDecode(resultsArea));
+                    resultsArea.append(sanitizer.sanitize(
+                        `<p>${search_used}<br><i>That search yielded no results</i></p>`
+                        )
+                    );
                 }
             }
 
             // search failure
             else {
-                resultsArea.append(`&lt;p&gt;${resp.status}&lt;/p&gt;`);
+                resultsArea.append(`<p>${resp.status}</p>`);
             }
 
             loadingIcon.hide();

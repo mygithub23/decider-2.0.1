@@ -1,3 +1,5 @@
+// import { sanitizer } from "./htmlSanitizer";
+
 window.jump_to_id = {
     tech_to_tact: {},
 };
@@ -28,24 +30,42 @@ window.jump_to_id = {
     the second content container will
 
 */
+//----------------------------------------------------------------------------------------------------------------------
+// function to sanitize HTML content
+var sanitizer = {};
 
-// ------ Fix for XSS vulnerabilities
+(function($) {
+    function trimAttributes(node) {
+        $.each(node.attributes, function() {
+            var attrName = this.name;
+            var attrValue = this.value;
 
-function htmlDecode(input) {
-    const textArea = document.createElement("textarea");
-    textArea.innerHTML = input;
-    return textArea.value;
-}
-function htmlEncode(input) {
-    const textArea = document.createElement("textarea");
-    textArea.innerText = input;
-    return textArea.innerHTML.split("<br>").join("\n");
-}
+            // remove attribute name start with "on", possible unsafe,
+            // for example: onload, onerror...
+            //
+            // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
+            // for example href="javascript:alert(1)"
+            if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
+                $(node).removeAttr(attrName);
+            }
+        });
+    }
 
-function htmlDecodeTag(input) {
-    let doc = new DOMParser().parseFromString(input, "text/html");
-    return doc.documentElement.textContent;
-}
+    function sanitize(html) {
+
+
+        var output = $($.parseHTML('<div>' + html + '</div>', null, false));
+        output.find('*').each(function() {
+            trimAttributes(this);
+        });
+        return output.html();
+    }
+
+    sanitizer.sanitize = sanitize;
+})(jQuery);
+
+
+// ---------------------------------------------------------------------------------------------------------------------
 
 // function to open tab when clicking on the actual tab
 function openTab(liObj, tab, level) {
@@ -162,7 +182,9 @@ function opentab_missing_content(liObj, tab, level) {
 // function to build an entire tab
 function createTabContent(index, data) {
     // this is just the question at the top of the page
-    let section_question = $(`<section class="section"><h1 class="title">Question Text</h1></section>`);
+    let section_question = $(sanitizer.sanitize(
+        `<section class="section"><h1 class="title">Question Text</h1></section>`
+    ));
     let section_answers = buildSectionAnswer(data); // this builds the section with answers
     let content_div = $("#content1");
     //create the question editing box
@@ -178,7 +200,9 @@ function createTabContent(index, data) {
     //if tabs should exist, add tabs
     if (index !== "start") {
         //build the lower container
-        let inner_div = $(`<div id="content2"></div>`);
+        let inner_div = $(sanitizer.sanitize(
+            `<div id="content2"></div>`
+        ));
         inner_div.append(section_answers);
         content_div.append(inner_div);
     } else {
@@ -188,12 +212,16 @@ function createTabContent(index, data) {
 
 // function to build just the inner tab's content
 function buildInnerContainer(index, data) {
-    let div = $(`<div id="content3"></div>`);
+    let div = $(sanitizer.sanitize(
+        `<div id="content3"></div>`
+    ));
     let section_answers = buildSectionAnswer(data);
 
     //if index is a subtechnique (used for when items in the sidebar are clicked)
     if (index.match(/TA[0-9]{4}\.T[0-9]{4}/)) {
-        let section_question = $(`<section class="section"><h1 class="title">Question Text</h1></section>`);
+        let section_question = $(sanitizer.sanitize(
+            `<section class="section"><h1 class="title">Question Text</h1></section>`
+        ));
 
         section_question.append(
             createEditBox(
@@ -213,21 +241,28 @@ function buildInnerContainer(index, data) {
         $("#content2").append(div);
     }
 }
-
+//sanitizer.sanitize(
 // function to build the tabs - used for the second tab since the first one will not be changing
 function buildTabs(index, data) {
-    let sub_tab = $(`<div class="tabs is-centered" id="tabs2"></div>`);
-    // let ul = $("<ul></ul>");
-    let ul = htmlEncode("<ul></ul>");
-    (htmlDecode(ul)).append($(`<li name="base" class="is-active" onclick="openTab(this,'${index}',2)"><a>base</a></li>`));
+    const sub_tab = $(
+        sanitizer.sanitize(`
+            <div class="tabs is-centered" id="tabs2"></div>
+        `)
+    );
+    const ul = $(sanitizer.sanitize("<ul></ul>"));
+    ul.append(
+        $(sanitizer.sanitize(
+            `<li name="base" class="is-active" onclick="openTab(this,'${index}',2)"><a>base</a></li>`
+        ))
+    );
     for (const item of data.data) {
         if (item.has_children) {
-            // let li = $(`<li name="${item.id}" onclick="openTab(this,'${index}.${item.id}',2)"><a>${item.id}</a></li>`);
-            let li = htmlEncode(
-                `<li name="${item.id}" onclick="openTab(this,'${index}.${item.id}',2)"><a>${item.id}</a></li>`);
+            let li = $(sanitizer.sanitize(
+                `<li name="${item.id}" onclick="openTab(this,'${index}.${item.id}',2)"><a>${item.id}</a></li>`
+                ));
             ul.append(li);
         }
-        sub_tab.append(htmlDecode(ul));
+        sub_tab.append(ul);
     }
     return sub_tab;
 }
@@ -235,18 +270,18 @@ function buildTabs(index, data) {
 // function to build the answer section
 // this can be subtechnique answers or technique answers - depending on which tab the user is at
 function buildSectionAnswer(data) {
-    // let section_answers = $('<section class="section"><h1 class="title">Answer Text</h1></section>');
-    let section_answers = htmlEncode('<section class="section"><h1 class="title">Answer Text</h1></section>');
+    // let technique_ul = $(sanitizer.sanitize('<ul class="menu-list" style="display: none;"></ul>'));
+    let section_answers = $(sanitizer.sanitize('<section class="section"><h1 class="title">Answer Text</h1></section>'));
     for (const item of data.data) {
         let mismapping = false;
         if (/^T[0-9]{4}/.test(item.id)) {
             mismapping = true;
         }
-        (htmlDecode(section_answers)).append(
+        section_answers.append(
             createEditBox(`${item.id} (${item.name})`, item.answer_edit, item.answer_view, "answer", mismapping)
         );
     }
-    return htmlDecode(section_answers);
+    return section_answers;
 }
 
 // function to build the editing and rendering box
@@ -262,7 +297,9 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
             ["tactic", tactic],
             ["index", index]
         ]).toString();
-        mismap_element = htmlEncode(`<a href="/edit/mismapping?${mismapLinkParams}">Edit Mismappings</a>`);
+        mismap_element = $(sanitizer.sanitize(
+            `<a href="/edit/mismapping?${mismapLinkParams}">Edit Mismappings</a>`
+            ));
     }
 
     // ATT&CK identifier, can also be "start"
@@ -271,7 +308,7 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
 
     // start box cannot be edited - fixed text
     if (attack_id === "start") {
-        box = htmlEncode(`
+        box = $(sanitizer.sanitize(`
         <div class="box">
             <h6 class="title is-6">${attack_id}</h6>
             <div class="columns">
@@ -279,13 +316,13 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
                     <div id="${attack_id}-render" class="md-content">${view_text}</div>
                 </div>
             </div>
-        </div>`
-        );
+        </div>
+        `));
     }
 
     // others are editable
     else {
-        box = htmlEncode(`
+        box = $(sanitizer.sanitize(`
         <div id='${attack_id}' class="box">
             <h6 class="title is-6">${label}</h6>
             <div class="columns">
@@ -299,11 +336,11 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
                 </div>
             </div>
         </div>
-        `);
+        `));
     }
 
-    (htmlDecode(box)).append(htmlDecode(mismap_element));
-    return htmlDecode(box);
+    box.append(mismap_element);
+    return box;
 }
 
 // function to update content on each key press
@@ -315,8 +352,6 @@ var updateContent = _.debounce(function (elem) {
         text: textarea.val(),
         version: $("#versionSelect").val(),
     };
-    
-    let id1 = htmlEncode(`[id="${textarea.data("id")}-render"]`).html(res.name);
     $.ajax({
         type: "POST",
         url: `/edit/tree/api`,
@@ -324,7 +359,9 @@ var updateContent = _.debounce(function (elem) {
         contentType: "application/json",
         data: JSON.stringify(data),
         success: function (res) {
-            $(`[id="${textarea.data("id")}-render"]`).html(res.name);
+            $(sanitizer.sanitize(
+                `[id="${textarea.data("id")}-render"]`
+            )).html(res.name);
             populateSidebar();
         },
     });
@@ -360,22 +397,22 @@ function populateSidebar() {
             for (const chunk of missingChunks) {
                 // build techniques in group
                 let missingTechRows = _.map(chunk.techniques, function (tech) {
-                    return `
+                    return sanitizer.sanitize(`
                     <li onclick="opentab_missing_content(this,'${chunk.tactic_id}.${tech.tech_id}',${tech.level})">
                         <a><span class="icon" style="color: blue;">
                             <i class="mdi mdi-18px mdi-chat-processing"></i>
                         </span> ${tech.tech_id} (${tech.tech_name})</a>
-                    </li>`;
+                    </li>`);
                 });
 
                 // form chunk and add
-                let tacticChunk = htmlEncode(`
+                let tacticChunk = $(sanitizer.sanitize(`
                     <p name="${chunk.tactic_id}" class="menu-label">${chunk.tactic_id} (${chunk.tactic_name})<p>
                     <ul class="menu-list">
                         ${_.join(missingTechRows, "")}
                     </ul>
-                `);
-                $("#missingContent").append(htmlDecode(tacticChunk));
+                `));
+                $("#missingContent").append(tacticChunk);
             }
         },
     });
@@ -423,9 +460,9 @@ function setErrorJumpToIDStatus(content) {
 
 // display default help-text in JumpToID
 function resetJumpToIDStatus() {
-    let statusSpan = htmlEncode("#editing-jump-to-id-status");
-    (htmlDecode(statusSpan)).css("color", "black");
-    (htmlDecode(statusSpan)).html("Tnnnn<u><b>.</b>nnn</u> or Tnnnn<u><b>/</b>nnn</u> allowed");
+    let statusSpan = $("#editing-jump-to-id-status");
+    statusSpan.css("color", "black");
+    statusSpan.html(sanitizer.sanitize("Tnnnn<u><b>.</b>nnn</u> or Tnnnn<u><b>/</b>nnn</u> allowed"));
 }
 
 // JumpToID button callback
