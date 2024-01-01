@@ -7,13 +7,13 @@ $(document).ready(function () {
 
 //----------------------------------------------------------------------------------------------------------------------
 // function to sanitize HTML content
-var sanitizer = {};
+let sanitizer = {};
 
 (function($) {
     function trimAttributes(node) {
         $.each(node.attributes, function() {
-            var attrName = this.name;
-            var attrValue = this.value;
+            const attrName = this.name;
+            const attrValue = this.value;
 
             // remove attribute name start with "on", possible unsafe,
             // for example: onload, onerror...
@@ -29,7 +29,7 @@ var sanitizer = {};
     function sanitize(html) {
 
 
-        var output = $($.parseHTML('<div>' + html + '</div>', null, false));
+        const output = $($.parseHTML('<div>' + html + '</div>', null, false));
         output.find('*').each(function() {
             trimAttributes(this);
         });
@@ -154,7 +154,7 @@ function buildDropdownItem(technique, selected = "") {
     console.log(technique_name)
     let a = $(`<a class="dropdown-item ${selected}" ></a>`);
 
-    a.html(`${technique_id} (${technique_name})`);
+    a.html(sanitizer.sanitize(`${technique_id} (${technique_name})`));
     a.data("technique_id", technique_id);
     a.attr("href", "javascript:void(0);");
 

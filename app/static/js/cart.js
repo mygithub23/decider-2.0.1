@@ -24,7 +24,16 @@ $(document).ready(function () {
         $("#cartColumn").show();
     }
 
+
+
+
+
+
+
+                                                                                                                         
+
     // auto-save feature present and enabled -> visually show that
+    
     if ($("#auto-save").length !== 0 && sessionStorage.getItem("auto-save") === "true")
         $("#auto-save").prop("checked", true);
 
@@ -52,10 +61,22 @@ var sanitizer = {};
             // for example: onload, onerror...
             //
             // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
-            // for example href="javascript:alert(1)"
-            if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
-                $(node).removeAttr(attrName);
-            }
+            // for example href="javascript:alert(1)"++
+            if (attrName) {
+                // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+                // console.log('attrName:' + attrName);
+                // console.log('attrValue:' + attrValue);
+                // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+
+                if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
+                    $(node).removeAttr(attrName);
+                }
+            } else {
+                // console.log('trmAttributes: $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$44')
+                // console.log('attrName:' + attrName);
+                // console.log('attrValue:' + attrValue);
+                // console.log('trmAttributes: $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$44')
+            }                                
         });
     }
 
@@ -83,9 +104,11 @@ function getCart() {
     var cartObj;
 
     cartStr = sessionStorage.getItem("cart");
+    console.log("getCart: cartStr: " + cartStr);
 
     try {
         cartObj = JSON.parse(cartStr);
+        console.log("cartObj: " + cartObj);
         if (
             !cartObj.hasOwnProperty("title") ||
             !cartObj.hasOwnProperty("version") ||
@@ -704,6 +727,7 @@ function navigatorExport() {
 
 function downloadObjectAsJson(exportObj, exportName) {
     var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+    console.log("dataStr: " + dataStr);
     var downloadAnchorNode = document.createElement("a");
     downloadAnchorNode.setAttribute("href", dataStr);
     downloadAnchorNode.setAttribute("download", exportName + "-navigator.json");

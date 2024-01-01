@@ -304,7 +304,7 @@ function searchFetchAndRender(version_change) {
 
             // search failure
             else {
-                resultsArea.append(`<p>${resp.status}</p>`);
+                resultsArea.append(sanitizer.sanitize(`<p>${resp.status}</p>`));
             }
 
             loadingIcon.hide();
