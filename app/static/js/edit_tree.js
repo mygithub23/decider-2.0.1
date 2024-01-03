@@ -30,6 +30,7 @@ window.jump_to_id = {
     the second content container will
 
 */
+
 //----------------------------------------------------------------------------------------------------------------------
 // function to sanitize HTML content
 var sanitizer = {};
@@ -44,21 +45,46 @@ var sanitizer = {};
             // for example: onload, onerror...
             //
             // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
-            // for example href="javascript:alert(1)"
-            if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
-                $(node).removeAttr(attrName);
-            }
+            // for example href="javascript:alert(1)"++
+            if (attrName) {
+                // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+                // console.log('attrName:' + attrName);
+                // console.log('attrValue:' + attrValue);
+                // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+
+                if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
+                    $(node).removeAttr(attrName);
+                }
+            } else {
+                // console.log('trmAttributes: $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$44')
+                // console.log('attrName:' + attrName);
+                // console.log('attrValue:' + attrValue);
+                // console.log('trmAttributes: $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$44')
+            }                                
         });
     }
 
-    function sanitize(html) {
+    function sanitize(html, s=true) {
+        console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+        console.trace();
+        console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
 
 
         var output = $($.parseHTML('<div>' + html + '</div>', null, false));
         output.find('*').each(function() {
             trimAttributes(this);
         });
-        return output.html();
+        if (s) {
+            console.log("output.html() ----------------------- : " + output.html())
+            return output.html();
+        } else {
+            stringResult = output.html().replace(/<(|\/|[^>\/bi]|\/[^>bi]|[^\/>][^>]+|\/[^>][^>]+)>/g, '')
+            console.log("stringResult ----------------------- : " + stringResult)
+            return stringResult;
+        }
+
+        
     }
 
     sanitizer.sanitize = sanitize;
@@ -119,7 +145,7 @@ function opentab_missing_content(liObj, tab, level) {
         success: function (res) {
             $(`#tabs1`).find(" > ul > .is-active").removeClass("is-active"); // remove the highlighting on all tabs
             $(`.menu-list > li > a`).removeClass("is-active"); // remove active from all items in sidebar
-            $(`li[name='${tactic}']`).addClass("is-active"); // add active to the clicked on item in both the sidebar and the
+            $(sanitizer.sanitize(`li[name='${tactic}']`)).addClass("is-active"); // add active to the clicked on item in both the sidebar and the
 
             $(liObj).children().addClass("is-active");
 
@@ -135,7 +161,7 @@ function opentab_missing_content(liObj, tab, level) {
                 // automatically scroll to the selected technique
                 $([document.documentElement, document.body]).animate(
                     {
-                        scrollTop: $(`#${technique}`).offset().top,
+                        scrollTop: $(sanitizer.sanitize(`#${technique}`)).offset().top,
                     },
                     1000
                 );
@@ -160,7 +186,7 @@ function opentab_missing_content(liObj, tab, level) {
                         $(`#tabs2`).find(" > ul > .is-active").removeClass("is-active");
                         $(`#content2`).empty();
 
-                        $(`li[name='${technique}']`).addClass("is-active");
+                        $(sanitizer.sanitize(`li[name='${technique}']`)).addClass("is-active");
 
                         // build the inner tab container filled with the technique's question and subtechnique answers
                         buildInnerContainer(`${tactic}.${technique}`, res2);
@@ -168,7 +194,7 @@ function opentab_missing_content(liObj, tab, level) {
                         // automatically scroll to the content
                         $([document.documentElement, document.body]).animate(
                             {
-                                scrollTop: $(`#${tab.split(".").slice(1).join("\\.")}`).offset().top,
+                                scrollTop: $(sanitizer.sanitize(`#${tab.split(".").slice(1).join("\\.")}`)).offset().top,
                             },
                             1000
                         );
@@ -257,10 +283,10 @@ function buildTabs(index, data) {
     );
     for (const item of data.data) {
         if (item.has_children) {
-            let li = $(sanitizer.sanitize(
+            let li = $(
                 `<li name="${item.id}" onclick="openTab(this,'${index}.${item.id}',2)"><a>${item.id}</a></li>`
-                ));
-            ul.append(li);
+                );
+            ul.append(sanitizer.sanitize(li));
         }
         sub_tab.append(ul);
     }
@@ -322,7 +348,7 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
 
     // others are editable
     else {
-        box = $(sanitizer.sanitize(`
+        box = $(`
         <div id='${attack_id}' class="box">
             <h6 class="title is-6">${label}</h6>
             <div class="columns">
@@ -336,11 +362,11 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
                 </div>
             </div>
         </div>
-        `));
+        `);
     }
 
     box.append(mismap_element);
-    return box;
+    return sanitizer.sanitize(box);
 }
 
 // function to update content on each key press

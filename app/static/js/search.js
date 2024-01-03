@@ -285,7 +285,7 @@ function searchFetchAndRender(version_change) {
 
                 // results
                 if (resp.techniques.length > 0) {
-                    resultsArea.append(`<p>${search_used}</p>`);
+                    resultsArea.append(sanitizer.sanitize(`<p>${search_used}</p>`));
                     _.forEach(resp.techniques, function (t) {
                         resultsArea.append(
                             fullSearchTechniqueTemplate(t, t.tech_id_plain.replace(/\./, "-") === lastResultTechId)

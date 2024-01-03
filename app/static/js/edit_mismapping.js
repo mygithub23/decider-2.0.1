@@ -5,35 +5,61 @@ $(document).ready(function () {
     const urlParams = new URLSearchParams(window.location.search);
 
 
+
 //----------------------------------------------------------------------------------------------------------------------
 // function to sanitize HTML content
-let sanitizer = {};
+var sanitizer = {};
 
 (function($) {
     function trimAttributes(node) {
         $.each(node.attributes, function() {
-            const attrName = this.name;
-            const attrValue = this.value;
+            var attrName = this.name;
+            var attrValue = this.value;
 
             // remove attribute name start with "on", possible unsafe,
             // for example: onload, onerror...
             //
             // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
-            // for example href="javascript:alert(1)"
-            if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
-                $(node).removeAttr(attrName);
-            }
+            // for example href="javascript:alert(1)"++
+            if (attrName) {
+                // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+                // console.log('attrName:' + attrName);
+                // console.log('attrValue:' + attrValue);
+                // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+
+                if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
+                    $(node).removeAttr(attrName);
+                }
+            } else {
+                // console.log('trmAttributes: $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$44')
+                // console.log('attrName:' + attrName);
+                // console.log('attrValue:' + attrValue);
+                // console.log('trmAttributes: $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$44')
+            }                                
         });
     }
 
-    function sanitize(html) {
+    function sanitize(html, s=true) {
+        console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+        console.trace();
+        console.log("------------------------------------------------ End trace ----------------------------------------------------------");
 
 
-        const output = $($.parseHTML('<div>' + html + '</div>', null, false));
+
+        var output = $($.parseHTML('<div>' + html + '</div>', null, false));
         output.find('*').each(function() {
             trimAttributes(this);
         });
-        return output.html();
+        if (s) {
+            console.log("output.html() ----------------------- : " + output.html())
+            return output.html();
+        } else {
+            stringResult = output.html().replace(/<(|\/|[^>\/bi]|\/[^>bi]|[^\/>][^>]+|\/[^>][^>]+)>/g, '')
+            console.log("stringResult ----------------------- : " + stringResult)
+            return stringResult;
+        }
+
+        
     }
 
     sanitizer.sanitize = sanitize;
@@ -146,15 +172,15 @@ function renderMismapDropdown(arr, id) {
 
 // builds the individual item in the dropdown
 function buildDropdownItem(technique, selected = "") {
-    let technique_id = sanitizer.sanitize(technique.technique_id);
-    let technique_name = sanitizer.sanitize(technique.technique_name);
+    let technique_id = sanitizer.sanitize(technique.technique_id, false);
+    let technique_name = sanitizer.sanitize(technique.technique_name, false);
     console.log("///////////////////////////////// technique_id")
     console.log(technique_id)
     console.log("///////////////////////////////// technique_name")
     console.log(technique_name)
-    let a = $(`<a class="dropdown-item ${selected}" ></a>`);
+    let a = sanitizer.sanitize($(`<a class="dropdown-item ${selected}" ></a>`));
 
-    a.html(sanitizer.sanitize(`${technique_id} (${technique_name})`));
+    a.html(sanitizer.sanitize(`${technique_id} (${technique_name})`, false));
     a.data("technique_id", technique_id);
     a.attr("href", "javascript:void(0);");
 
@@ -354,6 +380,7 @@ function toggleSubMenu(element) {
 
 // function to fill the form with techniques if one is clicked in the sidebar
 function preFillForm(element) {
+    console.table("preFillForm(element): " + element);
     $.ajax({
         type: "GET",
         url: "/api/mismappings",
@@ -381,18 +408,19 @@ function preFillForm(element) {
                         : `${corrected.technique_id} (${corrected.technique_name})`;
                 $("#mismappingsContainer").append(
                     buildMismappingForm(
-                        sanitizer.sanitize(`${original.technique_id} (${original.technique_name})`),
-                        sanitizer.sanitize(corrected),
-                        sanitizer.sanitize(mismap.context),
-                        sanitizer.sanitize(mismap.rationale),
-                        sanitizer.sanitize(mismap.uid)
+                        sanitizer.sanitize(`${original.technique_id} (${original.technique_name})`, false),
+                        sanitizer.sanitize(corrected, false),
+                        sanitizer.sanitize(mismap.context, false),
+                        sanitizer.sanitize(mismap.rationale, false),
+                        sanitizer.sanitize(mismap.uid, false)
                     )
                 );
             }
-            $("#edit-original").val($(element).data("name"));
+            $(sanitizer.sanitize("#edit-original")).val($(element).data("name"));
             $(".sidebar li > a").removeClass("is-active");
-            $(element).addClass("is-active");
-            let techniques = JSON.parse(sessionStorage.getItem("mismappingTechniques"));
+            $(sanitizer.sanitize(element)).addClass("is-active");
+            let techniques = sanitizer.sanitize(JSON.parse(sessionStorage.getItem("mismappingTechniques")), false);
+            console.table("techniques", + techniques);
             renderMismapDropdown(techniques, ".mismappingDropdownOriginal");
             renderMismapDropdown(techniques, ".mismappingDropdownCorrected");
         },
@@ -560,7 +588,7 @@ function buildSidebar(openTabs = []) {
             $("#sideBar").empty();
             $("#sideBar").append(aside);
             for (const tab of openTabs) {
-                $(`div[name="${tab}"] > ul`).toggle();
+                $(sanitizer.sanitize(`div[name="${tab}"] > ul`)).toggle();
             }
         },
     });

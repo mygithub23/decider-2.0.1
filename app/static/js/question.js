@@ -33,47 +33,47 @@ $(document).ready(function () {
 
 //----------------------------------------------------------------------------------------------------------------------
 // function to sanitize HTML content
-let sanitizer = {};
+// let sanitizer = {};
 
-(function($) {
-    function trimAttributes(node) {
-        $.each(node.attributes, function() {
-            const attrName = this.name;
-            const attrValue = this.value;
+// (function($) {
+//     function trimAttributes(node) {
+//         $.each(node.attributes, function() {
+//             const attrName = this.name;
+//             const attrValue = this.value;
 
-            // remove attribute name start with "on", possible unsafe,
-            // for example: onload, onerror...
-            //
-            // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
-            // for example href="javascript:alert(1)"
-            if (attrName) {
-                // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-                // console.log('attrName:' + attrName);
-                // console.log('attrValue:' + attrValue);
-                // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-                console.log("------------------------------------------------ trace ----------------------------------------------------------");
-                console.trace();
-                console.log("------------------------------------------------ trace ----------------------------------------------------------");
-                if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
-                    $(node).removeAttr(attrName);
-                }
-            }   
-        });
-    }
+//             // remove attribute name start with "on", possible unsafe,
+//             // for example: onload, onerror...
+//             //
+//             // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
+//             // for example href="javascript:alert(1)"
+//             if (attrName) {
+//                 // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+//                 // console.log('attrName:' + attrName);
+//                 // console.log('attrValue:' + attrValue);
+//                 // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+//                 console.log("------------------------------------------------ trace ----------------------------------------------------------");
+//                 console.trace();
+//                 console.log("------------------------------------------------ trace ----------------------------------------------------------");
+//                 if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
+//                     $(node).removeAttr(attrName);
+//                 }
+//             }   
+//         });
+//     }
 
-    function sanitize(html) {
+//     function sanitize(html) {
 
 
-        const output = $($.parseHTML('<div>' + html + '</div>', null, false));
-        output.find('*').each(function() {
-            trimAttributes(this);
-        });
+//         const output = $($.parseHTML('<div>' + html + '</div>', null, false));
+//         output.find('*').each(function() {
+//             trimAttributes(this);
+//         });
 
-        return output.html();
-    }
+//         return output.html();
+//     }
 
-    sanitizer.sanitize = sanitize;
-})(jQuery);
+//     sanitizer.sanitize = sanitize;
+// })(jQuery);
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -166,9 +166,9 @@ function initAnswerCards() {
             // Add default score to entries so they maintain original display order unless scored by MiniSearch; save
             for (let i = 0; i < answers.length; i++) {
                 answers[i].score = -i;
-                answers[i].label = sanitizer.sanitize(`${answers[i].name} (${answers[i].id})`);
+                answers[i].label = sanitizer.sanitize(`${answers[i].name} (${answers[i].id})`, false);
                 answers[i].highlights = {};
-                answers[i].content_text = sanitizer.sanitize($(answers[i].content).text());
+                answers[i].content_text = sanitizer.sanitize($(answers[i].content).text(), false);
 
                 score = answers[i].score ;
                 label = answers[i].label;
@@ -205,7 +205,7 @@ function initAnswerCards() {
 
 function templateAndHighlightAnswer(ans_data) {
     // Render card with template
-    const ans_card = $(sanitizer.sanitize(answerTemplate(ans_data)));
+    const ans_card = $(sanitizer.sanitize(answerTemplate(ans_data)), false);
     console.log("answerTemplate(ans_data): ") 
     console.table(ans_data)
     console.log(Object.assign({}, ans_data));
@@ -238,6 +238,10 @@ function templateAndHighlightAnswer(ans_data) {
 }
 
 function gotoAnswerPage(page_num) {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     const PER_PAGE = 5; // Configurable
     const answers_view = question.answer_view;
     console.log("gotoAnswerPage(page_num): " + page_num);
@@ -438,6 +442,10 @@ function questionRenderFrontendSearch(answer_data) {
 }
 
 function questionRenderBackendSearchRequest(answer_data) {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     // form URL params for request
     let ansList = $("#answer-list");
     console.log("ansList: " + ansList);
@@ -475,6 +483,10 @@ function questionRenderBackendSearchRequest(answer_data) {
 }
 
 function questionRenderBackendSearchResponse(answer_data, searchResponse) {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     console.log("questionRenderBackendSearchResponse(answer_data, searchResponse): " + answer_data);
     console.log("questionRenderBackendSearchResponse(answer_data, answer_data): " + answer_data);
     // search successful
@@ -563,6 +575,10 @@ function questionRenderBackendSearchResponse(answer_data, searchResponse) {
 }
 
 function questionRender() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     // clone data for transform, get filters of cards to remove
     const answer_data = JSON.parse(JSON.stringify(question.answer_data));
     const platform_selections = getChkSelections("platform");

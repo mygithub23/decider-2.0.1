@@ -80,18 +80,76 @@ var sanitizer = {};
         });
     }
 
-    function sanitize(html) {
+    function sanitize(html, s=true) {
+        console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+        console.trace();
+        console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
 
 
         var output = $($.parseHTML('<div>' + html + '</div>', null, false));
         output.find('*').each(function() {
             trimAttributes(this);
         });
-        return output.html();
+        if (s) {
+            console.log("output.html() ----------------------- : " + output.html())
+            return output.html();
+        } else {
+            stringResult = output.html().replace(/<(|\/|[^>\/bi]|\/[^>bi]|[^\/>][^>]+|\/[^>][^>]+)>/g, '')
+            console.log("stringResult ----------------------- : " + stringResult)
+            return stringResult;
+        }
+
+        
     }
 
     sanitizer.sanitize = sanitize;
 })(jQuery);
+
+// // function to sanitize HTML content
+// var sanitizer = {};
+
+// (function($) {
+//     function trimAttributes(node) {
+//         $.each(node.attributes, function() {
+//             var attrName = this.name;
+//             var attrValue = this.value;
+
+//             // remove attribute name start with "on", possible unsafe,
+//             // for example: onload, onerror...
+//             //
+//             // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
+//             // for example href="javascript:alert(1)"++
+//             if (attrName) {
+//                 // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+//                 // console.log('attrName:' + attrName);
+//                 // console.log('attrValue:' + attrValue);
+//                 // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+
+//                 if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
+//                     $(node).removeAttr(attrName);
+//                 }
+//             } else {
+//                 // console.log('trmAttributes: $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$44')
+//                 // console.log('attrName:' + attrName);
+//                 // console.log('attrValue:' + attrValue);
+//                 // console.log('trmAttributes: $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$44')
+//             }                                
+//         });
+//     }
+
+//     function sanitize(html) {
+
+
+//         var output = $($.parseHTML('<div>' + html + '</div>', null, false));
+//         output.find('*').each(function() {
+//             trimAttributes(this);
+//         });
+//         return output.html();
+//     }
+
+//     sanitizer.sanitize = sanitize;
+// })(jQuery);
 
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -100,15 +158,21 @@ function emptyCartString() {
 }
 
 function getCart() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     var cartStr;
     var cartObj;
 
-    cartStr = sessionStorage.getItem("cart");
-    console.log("getCart: cartStr: " + cartStr);
+    // xss-safe cart string
+    cartStr = sanitizer.sanitize(sessionStorage.getItem("cart"),false);
+    console.log("getCart: cartStr: " + JSON.stringify(cartStr));
 
     try {
         cartObj = JSON.parse(cartStr);
-        console.log("cartObj: " + cartObj);
+        console.table("cartObj - table: " + cartObj);
+        console.log("cartObj - log: " + cartObj);
         if (
             !cartObj.hasOwnProperty("title") ||
             !cartObj.hasOwnProperty("version") ||
@@ -120,10 +184,14 @@ function getCart() {
         sessionStorage.setItem("cart", cartStr);
         cartObj = JSON.parse(cartStr);
     }
-    return cartObj;
+    return sanitizer.sanitize(cartObj,false);
 }
 
 function updateCartTitle(title, version) {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     if (version === null && title === null) {
         $("#cart-title").html("Cart");
     } else {
@@ -136,6 +204,10 @@ function updateCartTitle(title, version) {
 }
 
 function populateCart() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     let cartData = getCart();
     updateCartTitle(cartData.title, cartData.version);
     for (const cartEntry of cartData.entries) {
@@ -144,6 +216,10 @@ function populateCart() {
 }
 
 var saveNote = _.debounce(function () {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     let cartData = getCart();
     let autoSave = $("#auto-save").length !== 0 && sessionStorage.getItem("auto-save") === "true";
 
@@ -160,6 +236,10 @@ var saveNote = _.debounce(function () {
 }, 400);
 
 function updateAutoSave() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     // update session storage to match checkbox
     let newState = $("#auto-save").prop("checked").toString();
     sessionStorage.setItem("auto-save", newState);
@@ -169,6 +249,10 @@ function updateAutoSave() {
 }
 
 function deleteItem(element) {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     // visual removal
     var cartItem = $(element).closest("li");
     var index = cartItem.index();
@@ -189,6 +273,10 @@ function deleteItem(element) {
 }
 
 function toggleCart() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     var shown = sessionStorage.getItem("cart-shown");
     if (shown === null || shown === "" || shown === "yes") {
         sessionStorage.setItem("cart-shown", "no");
@@ -200,6 +288,10 @@ function toggleCart() {
 }
 
 function importCart() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     if (!window.File || !window.FileReader || !window.FileList || !window.Blob) {
         spawnAlertModal("Browser Compatibility Issue", "The File APIs are not fully supported in this browser.");
         return;
@@ -208,6 +300,10 @@ function importCart() {
 }
 
 function cartItemTemplate(version, i) {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     // i -> cart entry data
     let itemURL = `/question/${version}/${i.tactic}/${i.index.replace(".", "/")}`;
     return $(sanitizer.sanitize(`
@@ -230,6 +326,10 @@ function cartItemTemplate(version, i) {
 // Save Cart to Database Functionality
 
 function preSaveCartModal() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     let cartData = getCart();
     if (cartData.entries.length === 0) {
         //cart is empty
@@ -240,6 +340,10 @@ function preSaveCartModal() {
 }
 
 function saveCartDatabase(verbose) {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     let cartData = getCart();
     let cart_name = cartData.title;
 
@@ -275,6 +379,10 @@ function saveCartDatabase(verbose) {
 
 // called when manually entered cart name changes
 function cartNameChange() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     var typedCartName = _.trim($("#rename_modal_new_name").val());
     var currentCart = getCart();
     var attackVersion = currentCart.version;
@@ -294,6 +402,10 @@ function cartNameChange() {
 // lists current cart names to ensure an over-write is only done intentionally
 // used instead of openModal('#rename_modal') as cart name list is dynamic
 function showRenameModal() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     let curNameBox = $("#rename_modal_current_name");
     let newNameBox = $("#rename_modal_new_name");
     let dbCartList = $("#rename_modal_db_cart_list");
@@ -316,6 +428,10 @@ function showRenameModal() {
 // callback for showRenameModal() to get and populate the DB cart list
 // fills a list with escaped named
 function showRenameModalPopulateCallback(carts) {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     let dbCartList = $("#rename_modal_db_cart_list");
     for (const cart of carts) {
         dbCartList.append(`<li>${_.escape(cart.name)}</li>`);
@@ -324,6 +440,10 @@ function showRenameModalPopulateCallback(carts) {
 
 // is called when the new name box is typed in for the rename modal
 function renameModalOnTypeNewName() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     let newName = _.trim($("#rename_modal_new_name").val());
     let dbCartList = $("#rename_modal_db_cart_list");
 
@@ -352,6 +472,10 @@ function renameModalOnTypeNewName() {
 // Upload Download Operations
 
 function getDateString() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     // YYYY-MM-DD_hh-mm-ss
     let d = new Date();
 
@@ -369,6 +493,10 @@ function getDateString() {
 // Upload Download Operations
 
 function downloadCart() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     let cartData = getCart();
     if (cartData.entries.length === 0) {
         //cart is empty
@@ -386,6 +514,10 @@ function downloadCart() {
 }
 
 function uploadCart(cartFileInput) {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     var file = cartFileInput.target.files[0];
     if (!file) {
         spawnAlertModal("Cart Upload Issue", "The file specified is invalid");
@@ -403,6 +535,10 @@ function uploadCart(cartFileInput) {
 // Word Export
 
 function hyperlinkParagraph(args) {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     const par = new docx.Paragraph({
         alignment: args.alignment,
         children: [
@@ -424,6 +560,10 @@ function hyperlinkParagraph(args) {
 }
 
 function wordExport() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     let cartData = getCart();
     if (cartData.entries.length === 0) {
         //cart is empty
@@ -635,7 +775,12 @@ function wordExport() {
 // Navigator Export
 
 function navigatorExport() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     let cartData = getCart();
+    console.table("cartData: ", cartData);
     if (cartData.entries.length === 0) {
         //cart is empty
         showToast("You must add items to the cart first.", "is-warning");
@@ -722,14 +867,25 @@ function navigatorExport() {
         selectTechniquesAcrossTactics: true,
         selectSubtechniquesWithParent: false,
     };
+    console.table("navigator_json: ", navigator_json);
+    console.log("cartData.title: " + cartData.title);
+    navigator_json = sanitizer.sanitize(navigator_json, false);
+    cartData.title = sanitizer.sanitize(cartData.title, false);
+    console.table("sanitizer avigator_json: ", navigator_json);
+    console.log("sanitizer cartData.title: " + cartData.title);
+
     downloadObjectAsJson(navigator_json, cartData.title);
 }
 
 function downloadObjectAsJson(exportObj, exportName) {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
-    console.log("dataStr: " + dataStr);
+    console.log("dataStr: " + sanitizer.sanitizer.sanitize(dataStr,false));
     var downloadAnchorNode = document.createElement("a");
-    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("href", sanitizer.sanitize(dataStr, false));
     downloadAnchorNode.setAttribute("download", exportName + "-navigator.json");
     document.body.appendChild(downloadAnchorNode); // required for firefox
     downloadAnchorNode.click();
@@ -740,6 +896,10 @@ function downloadObjectAsJson(exportObj, exportName) {
 // Load Cart from File + Misc
 
 function updateImport(inputCartData) {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     // fetch ATT&CK versions on server to ensure this cart will have content to view
     $.ajax({
         type: "GET",
@@ -817,6 +977,10 @@ function updateImport(inputCartData) {
 }
 
 function preCloseCartModal() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     // Checks if closing the cart is even a valid action first
 
     let cartData = getCart();
@@ -842,6 +1006,10 @@ function clearCart() {
 
 // locks
 function lockVersionSelect() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     sessionStorage.setItem("version-select-locked", "true");
     $("#versionSelect").prop("disabled", true);
 
@@ -857,6 +1025,10 @@ function lockVersionSelect() {
 
 // unlocks
 function unlockVersionSelect() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     sessionStorage.setItem("version-select-locked", "false");
     $("#versionSelect").prop("disabled", false);
 
@@ -868,11 +1040,19 @@ function unlockVersionSelect() {
 
 // checks state
 function isVersionSelectLocked() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     var versionSelectLocked = sessionStorage.getItem("version-select-locked");
     return versionSelectLocked === "true";
 }
 
 function lockRename() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     $("#rename-button").prop("disabled", true);
     var renameButton = $("#rename-button");
     renameButton.attr(
@@ -883,6 +1063,10 @@ function lockRename() {
 
 // unlocks
 function unlockRename() {
+    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
+    console.trace();
+    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+
     $("#rename-button").prop("disabled", false);
     var renameButton = $("#rename-button");
     renameButton.removeClass("has-tooltip-multiline");
