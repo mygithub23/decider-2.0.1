@@ -1,71 +1,7 @@
 //Mismapping
 
 $(document).ready(function () {
-    // query string; that is, a string containing a '?' followed by the parameters of the URL. 
     const urlParams = new URLSearchParams(window.location.search);
-
-
-
-//----------------------------------------------------------------------------------------------------------------------
-// function to sanitize HTML content
-var sanitizer = {};
-
-(function($) {
-    function trimAttributes(node) {
-        $.each(node.attributes, function() {
-            var attrName = this.name;
-            var attrValue = this.value;
-
-            // remove attribute name start with "on", possible unsafe,
-            // for example: onload, onerror...
-            //
-            // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
-            // for example href="javascript:alert(1)"++
-            if (attrName) {
-                // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-                // console.log('attrName:' + attrName);
-                // console.log('attrValue:' + attrValue);
-                // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-
-                if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
-                    $(node).removeAttr(attrName);
-                }
-            } else {
-                // console.log('trmAttributes: $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$44')
-                // console.log('attrName:' + attrName);
-                // console.log('attrValue:' + attrValue);
-                // console.log('trmAttributes: $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$44')
-            }                                
-        });
-    }
-
-    function sanitize(html, s=true) {
-        console.log("------------------------------------------------Start trace ----------------------------------------------------------");
-        console.trace();
-        console.log("------------------------------------------------ End trace ----------------------------------------------------------");
-
-
-
-        var output = $($.parseHTML('<div>' + html + '</div>', null, false));
-        output.find('*').each(function() {
-            trimAttributes(this);
-        });
-        if (s) {
-            console.log("output.html() ----------------------- : " + output.html())
-            return output.html();
-        } else {
-            stringResult = output.html().replace(/<(|\/|[^>\/bi]|\/[^>bi]|[^\/>][^>]+|\/[^>][^>]+)>/g, '')
-            console.log("stringResult ----------------------- : " + stringResult)
-            return stringResult;
-        }
-
-        
-    }
-
-    sanitizer.sanitize = sanitize;
-})(jQuery);
-
-// ---------------------------------------------------------------------------------------------------------------------
 
     // initialize all the dropdowns
     mismappingInit();
@@ -74,12 +10,8 @@ var sanitizer = {};
     // this is primarily used in the success page that redirects the user to the mismapping page
     // this also works if someone were to share the mismappings link
     if (urlParams.get("version") && urlParams.get("index") && urlParams.get("tactic")) {
-        let tactic = sanitizer.sanitize(urlParams.get("tactic"));
-        let index = sanitizer.sanitize(urlParams.get("index"));
-        console.log("/////////////////////////////////tactic then index")
-        console.log(tactic);
-        console.log(index);
-        console.log("/////////////////////////////////")
+        let tactic = urlParams.get("tactic");
+        let index = urlParams.get("index");
 
         let observerConfig = {
             attributes: true,
@@ -91,21 +23,9 @@ var sanitizer = {};
 
         const sidebar_target = $("#sideBar").get(0);
 
-        contentSideBar = sanitizer.sanitize(sidebar_target);
-        console.log("///////////////////////////////// sidebar_target: " + contentSideBar)
-        console.log("///////////////////////////////// sidebar_target")
-        console.log(sidebar_target)
-        console.log("/////////////////////////////////12")
-
         // observer to wait for the sidebar to finish loading
         let sidebar_observer = new MutationObserver((_, observer) => {
             let item = $(`div[name="${tactic}"] a[name="${index}"]`);
-            
-            contentItem = sanitizer.sanitize(sidebar_target);
-            console.log("///////////////////////////////// item: " + contentItem)
-            console.log("///////////////////////////////// item")
-            console.log(item)
-            console.log("/////////////////////////////////12")
             preFillForm(item);
             observer.disconnect();
         });
@@ -114,7 +34,6 @@ var sanitizer = {};
         buildSidebar();
     }
 });
-
 
 // function to build the dropdowns and store in sessionstorage
 function mismappingInit() {
@@ -172,15 +91,12 @@ function renderMismapDropdown(arr, id) {
 
 // builds the individual item in the dropdown
 function buildDropdownItem(technique, selected = "") {
-    let technique_id = sanitizer.sanitize(technique.technique_id, false);
-    let technique_name = sanitizer.sanitize(technique.technique_name, false);
-    console.log("///////////////////////////////// technique_id")
-    console.log(technique_id)
-    console.log("///////////////////////////////// technique_name")
-    console.log(technique_name)
-    let a = sanitizer.sanitize($(`<a class="dropdown-item ${selected}" ></a>`));
+    let technique_id = technique.technique_id;
+    let technique_name = technique.technique_name;
 
-    a.html(sanitizer.sanitize(`${technique_id} (${technique_name})`, false));
+    let a = $(`<a class="dropdown-item ${selected}" ></a>`);
+
+    a.html(`${technique_id} (${technique_name})`);
     a.data("technique_id", technique_id);
     a.attr("href", "javascript:void(0);");
 
@@ -380,7 +296,6 @@ function toggleSubMenu(element) {
 
 // function to fill the form with techniques if one is clicked in the sidebar
 function preFillForm(element) {
-    console.table("preFillForm(element): " + element);
     $.ajax({
         type: "GET",
         url: "/api/mismappings",
@@ -394,12 +309,6 @@ function preFillForm(element) {
             for (const mismap of res) {
                 let original = mismap.original;
                 let corrected = mismap.corrected;
-                console.log("/////////////////////////////////original then corrected")
-                console.log(original);
-                console.log(original.technique_id);
-                console.log(corrected);
-                console.log(corrected.technique_name);
-                console.log("/////////////////////////////////")
 
                 // if corrected is left empty, just fill in with N/A
                 corrected =
@@ -408,19 +317,18 @@ function preFillForm(element) {
                         : `${corrected.technique_id} (${corrected.technique_name})`;
                 $("#mismappingsContainer").append(
                     buildMismappingForm(
-                        sanitizer.sanitize(`${original.technique_id} (${original.technique_name})`, false),
-                        sanitizer.sanitize(corrected, false),
-                        sanitizer.sanitize(mismap.context, false),
-                        sanitizer.sanitize(mismap.rationale, false),
-                        sanitizer.sanitize(mismap.uid, false)
+                        `${original.technique_id} (${original.technique_name})`,
+                        corrected,
+                        mismap.context,
+                        mismap.rationale,
+                        mismap.uid
                     )
                 );
             }
-            $(sanitizer.sanitize("#edit-original")).val($(element).data("name"));
+            $("#edit-original").val($(element).data("name"));
             $(".sidebar li > a").removeClass("is-active");
-            $(sanitizer.sanitize(element)).addClass("is-active");
-            let techniques = sanitizer.sanitize(JSON.parse(sessionStorage.getItem("mismappingTechniques")), false);
-            console.table("techniques", + techniques);
+            $(element).addClass("is-active");
+            let techniques = JSON.parse(sessionStorage.getItem("mismappingTechniques"));
             renderMismapDropdown(techniques, ".mismappingDropdownOriginal");
             renderMismapDropdown(techniques, ".mismappingDropdownCorrected");
         },
@@ -429,7 +337,7 @@ function preFillForm(element) {
 
 // mismapping form
 function buildMismappingForm(original, corrected, context, rationale, uid) {
-    return $(sanitizer.sanitize(`
+    return $(`
         <div class="card mismappingEdit">
             <div class="card-header">
                 <p class="card-header-title">Edit Mismapping</p>
@@ -495,7 +403,7 @@ function buildMismappingForm(original, corrected, context, rationale, uid) {
             </div>
         </div>
 
-    `));
+    `);
 }
 // function to build out a clickable menu that populates the technique for mismap editing
 function buildSidebar(openTabs = []) {
@@ -512,7 +420,7 @@ function buildSidebar(openTabs = []) {
             for (const tactic of res) {
                 let tactic_id = tactic.tactic_id;
                 let tactic_name = tactic.tactic_name;
-                let technique_ul = $(sanitizer.sanitize('<ul class="menu-list" style="display: none;"></ul>'));
+                let technique_ul = $('<ul class="menu-list" style="display: none;"></ul>');
 
                 // sort and modify the technique list to fit the sidebar
                 // groups the subtechniques by parent technique, then by tactic
@@ -543,30 +451,26 @@ function buildSidebar(openTabs = []) {
                     if (value.length == 1) {
                         technique_name = value[0].technique_name;
                         li = $(
-                            sanitizer.sanitize(`
-                                <li name="${key}"><a name="${key}" data-name="${key} (${technique_name})" onclick="preFillForm(this)">${key} (${technique_name})</a></li>
-                            `)
+                            `<li name="${key}"><a name="${key}" data-name="${key} (${technique_name})" onclick="preFillForm(this)">${key} (${technique_name})</a></li>`
                         );
                     } else {
                         // if the technique has subtechniques, we have to create a sub menu item that'll also show the subtechniques under the parent technique
                         technique_name = value[0].technique_name;
-                        let ul = $(sanitizer.sanitize(`<ul></ul>`));
+                        let ul = $(`<ul></ul>`);
 
-                        li = $(
-                            sanitizer.sanitize(`                        
-                                <li name="${key}">
-                                    <a name="${key}" data-name="${key} (${technique_name})" onclick="preFillForm(this)">${key} (${technique_name})</a>
-                                </li>
-                            `)
-                        );
+                        li = $(`
+                            <li name="${key}">
+                                <a name="${key}" data-name="${key} (${technique_name})" onclick="preFillForm(this)">${key} (${technique_name})</a>
+                            </li>
+                        `);
                         for (const technique of value) {
                             let technique_id = technique.technique_id;
                             technique_name = technique.technique_name;
                             if (technique.technique_id !== key) {
                                 ul.append(
-                                    $(sanitizer.sanitize(`
-                                        <li name="${technique_id}"><a name="${technique_id}" data-name="${technique_id} (${technique_name})" onclick="preFillForm(this)">${technique_id} (${technique_name})</a></li>
-                                    `))
+                                    $(`
+                                    <li name="${technique_id}"><a name="${technique_id}" data-name="${technique_id} (${technique_name})" onclick="preFillForm(this)">${technique_id} (${technique_name})</a></li>
+                                `)
                                 );
                             }
                         }
@@ -576,19 +480,19 @@ function buildSidebar(openTabs = []) {
                 }
 
                 aside.append(
-                    $(sanitizer.sanitize(`
-                        <div name="${tactic_id}">
-                            <p class="menu-label">
-                                <a onclick="toggleSubMenu(this)">${tactic_id} (${tactic_name})<span class="icon is-right"><i class="mdi mdi-18px mdi-menu-down"></i></span></a>
-                            </p>
-                        </div>
-                    `)).append(technique_ul)
+                    $(`
+                    <div name="${tactic_id}">
+                        <p class="menu-label">
+                            <a onclick="toggleSubMenu(this)">${tactic_id} (${tactic_name})<span class="icon is-right"><i class="mdi mdi-18px mdi-menu-down"></i></span></a>
+                        </p>
+                    </div>
+                `).append(technique_ul)
                 );
             }
             $("#sideBar").empty();
             $("#sideBar").append(aside);
             for (const tab of openTabs) {
-                $(sanitizer.sanitize(`div[name="${tab}"] > ul`)).toggle();
+                $(`div[name="${tab}"] > ul`).toggle();
             }
         },
     });

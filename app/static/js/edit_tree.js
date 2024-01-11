@@ -1,5 +1,3 @@
-// import { sanitizer } from "./htmlSanitizer";
-
 window.jump_to_id = {
     tech_to_tact: {},
 };
@@ -31,67 +29,94 @@ window.jump_to_id = {
 
 */
 
-//----------------------------------------------------------------------------------------------------------------------
 // function to sanitize HTML content
 var sanitizer = {};
 
-(function($) {
+(function ($) {
     function trimAttributes(node) {
-        $.each(node.attributes, function() {
+        $.each(node.attributes, function () {
             var attrName = this.name;
             var attrValue = this.value;
-
-            // remove attribute name start with "on", possible unsafe,
-            // for example: onload, onerror...
-            //
-            // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
-            // for example href="javascript:alert(1)"++
             if (attrName) {
-                // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-                // console.log('attrName:' + attrName);
-                // console.log('attrValue:' + attrValue);
-                // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-
-                if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
+                if (attrValue.indexOf("javascript:") == 0) {
                     $(node).removeAttr(attrName);
                 }
             } else {
-                // console.log('trmAttributes: $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$44')
-                // console.log('attrName:' + attrName);
-                // console.log('attrValue:' + attrValue);
-                // console.log('trmAttributes: $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$44')
-            }                                
+            }
         });
     }
 
-    function sanitize(html, s=true) {
-        console.log("------------------------------------------------Start trace ----------------------------------------------------------");
-        console.trace();
-        console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+    function sanitize(html, s = true) {
+        console.log("-----------------Start trace sanitize(html)---------------------------");
+        console.trace("sanitizer.sanitize html param", html);
+        console.log("----------------- End trace sanitize(html)---------------------------");
 
-
-
-        var output = $($.parseHTML('<div>' + html + '</div>', null, false));
-        output.find('*').each(function() {
+        var output = $($.parseHTML("<div>" + html + "</div>", null, false));
+        output.find("*").each(function () {
             trimAttributes(this);
         });
-        if (s) {
-            console.log("output.html() ----------------------- : " + output.html())
-            return output.html();
+
+        console.log("is output equal? output.html() ----------------------- 00000000000");
+        console.log("html: \n" )
+        console.log(html)
+        console.log("output");
+        console.table(output);
+        console.log("output.html(): \n")
+        console.log(output.html())
+
+        if (output.html() === html) {
+            console.log("**** output.html() ==== html *********");
         } else {
-            stringResult = output.html().replace(/<(|\/|[^>\/bi]|\/[^>bi]|[^\/>][^>]+|\/[^>][^>]+)>/g, '')
-            console.log("stringResult ----------------------- : " + stringResult)
-            return stringResult;
+            console.log("**** output.html() !== html *********");
         }
 
-        
+        if (s) {
+            console.log("It is True - output ----------------------- 11111111112: \n");
+            console.table(output);
+            console.log("It is True - output.html() ----------------------- 11111111113: \n" + output.html());
+
+            if (output.html() === html) {
+                console.log("**** output.html() ==== html *********");
+                return true;
+            } else {
+                return false;
+                console.log("**** output.html() !== html *********");
+            }
+
+            //return output.html();
+        } else {
+            console.log("stringResult Before replace output.html()----------------------- 222222222 : ");
+            // console.log(output);
+            console.log(output.html());
+
+            console.log("stringResult Before replace output ----------------------- 3333333333333 : ");
+            // console.log(JSON.parse(output.html()));
+            console.log("output: ");
+            console.table(output);
+
+            stringResult = output.html().replace(/<(|\/|[^>\/bi]|\/[^>bi]|[^\/>][^>]+|\/[^>][^>]+)>/g, "");
+
+            console.log("stringResult After output.html().replace  -----------------------444444444444 : ");
+            console.log(`stringResult: \n, ${stringResult}`);
+            console.log(`html: \n, ${html}`);
+
+            if (stringResult === html) {
+                console.log("**** stringResult ==== html *********");
+            } else {
+                console.log("**** stringResult!== html *********");
+            }
+
+            if (stringResult === html) {
+                return true;
+            } else {
+                return false;
+            }
+            // return true;
+        }
     }
 
     sanitizer.sanitize = sanitize;
 })(jQuery);
-
-
-// ---------------------------------------------------------------------------------------------------------------------
 
 // function to open tab when clicking on the actual tab
 function openTab(liObj, tab, level) {
@@ -145,7 +170,15 @@ function opentab_missing_content(liObj, tab, level) {
         success: function (res) {
             $(`#tabs1`).find(" > ul > .is-active").removeClass("is-active"); // remove the highlighting on all tabs
             $(`.menu-list > li > a`).removeClass("is-active"); // remove active from all items in sidebar
-            $(sanitizer.sanitize(`li[name='${tactic}']`)).addClass("is-active"); // add active to the clicked on item in both the sidebar and the
+            
+            // XSS prevention
+            const sanitized = `li[name='${tactic}']`
+            if (sanitized) {
+                $(`li[name='${tactic}']`).addClass("is-active"); // add active to the clicked on item in both the sidebar and the
+            } else {
+                console.log("Error - opentab_missing_content - addClass to li is not sanitized")
+            }
+            
 
             $(liObj).children().addClass("is-active");
 
@@ -158,10 +191,11 @@ function opentab_missing_content(liObj, tab, level) {
 
                 createTabContent(`${tactic}`, res);
 
+
                 // automatically scroll to the selected technique
                 $([document.documentElement, document.body]).animate(
                     {
-                        scrollTop: $(sanitizer.sanitize(`#${technique}`)).offset().top,
+                        scrollTop: $(`#${technique}`).offset().top,
                     },
                     1000
                 );
@@ -186,7 +220,13 @@ function opentab_missing_content(liObj, tab, level) {
                         $(`#tabs2`).find(" > ul > .is-active").removeClass("is-active");
                         $(`#content2`).empty();
 
-                        $(sanitizer.sanitize(`li[name='${technique}']`)).addClass("is-active");
+                        // XSS prevention
+                        const sanitized = `li[name='${technique}']`
+                        if (sanitized) {
+                            $(`li[name='${technique}']`).addClass("is-active");
+                        } else {
+                            console.log("Error - opentab_missing_content - addClass to li is not sanitized")
+                        }            
 
                         // build the inner tab container filled with the technique's question and subtechnique answers
                         buildInnerContainer(`${tactic}.${technique}`, res2);
@@ -194,7 +234,7 @@ function opentab_missing_content(liObj, tab, level) {
                         // automatically scroll to the content
                         $([document.documentElement, document.body]).animate(
                             {
-                                scrollTop: $(sanitizer.sanitize(`#${tab.split(".").slice(1).join("\\.")}`)).offset().top,
+                                scrollTop: $(`#${tab.split(".").slice(1).join("\\.")}`).offset().top,
                             },
                             1000
                         );
@@ -208,9 +248,7 @@ function opentab_missing_content(liObj, tab, level) {
 // function to build an entire tab
 function createTabContent(index, data) {
     // this is just the question at the top of the page
-    let section_question = $(sanitizer.sanitize(
-        `<section class="section"><h1 class="title">Question Text</h1></section>`
-    ));
+    let section_question = $(`<section class="section"><h1 class="title">Question Text</h1></section>`);
     let section_answers = buildSectionAnswer(data); // this builds the section with answers
     let content_div = $("#content1");
     //create the question editing box
@@ -226,9 +264,7 @@ function createTabContent(index, data) {
     //if tabs should exist, add tabs
     if (index !== "start") {
         //build the lower container
-        let inner_div = $(sanitizer.sanitize(
-            `<div id="content2"></div>`
-        ));
+        let inner_div = $(`<div id="content2"></div>`);
         inner_div.append(section_answers);
         content_div.append(inner_div);
     } else {
@@ -238,16 +274,12 @@ function createTabContent(index, data) {
 
 // function to build just the inner tab's content
 function buildInnerContainer(index, data) {
-    let div = $(sanitizer.sanitize(
-        `<div id="content3"></div>`
-    ));
+    let div = $(`<div id="content3"></div>`);
     let section_answers = buildSectionAnswer(data);
 
     //if index is a subtechnique (used for when items in the sidebar are clicked)
     if (index.match(/TA[0-9]{4}\.T[0-9]{4}/)) {
-        let section_question = $(sanitizer.sanitize(
-            `<section class="section"><h1 class="title">Question Text</h1></section>`
-        ));
+        let section_question = $(`<section class="section"><h1 class="title">Question Text</h1></section>`);
 
         section_question.append(
             createEditBox(
@@ -267,26 +299,33 @@ function buildInnerContainer(index, data) {
         $("#content2").append(div);
     }
 }
-//sanitizer.sanitize(
+
 // function to build the tabs - used for the second tab since the first one will not be changing
 function buildTabs(index, data) {
-    const sub_tab = $(
-        sanitizer.sanitize(`
-            <div class="tabs is-centered" id="tabs2"></div>
-        `)
-    );
-    const ul = $(sanitizer.sanitize("<ul></ul>"));
-    ul.append(
-        $(sanitizer.sanitize(
-            `<li name="base" class="is-active" onclick="openTab(this,'${index}',2)"><a>base</a></li>`
-        ))
-    );
+    let sub_tab = $(`<div class="tabs is-centered" id="tabs2"></div>`);
+    let ul = $("<ul></ul>");
+
+    // XSS prevention
+    const sanitized = `<li name="base" class="is-active" onclick="openTab(this,'${index}',2)"><a>base</a></li>`
+    if (sanitized) {
+        ul.append($(`<li name="base" class="is-active" onclick="openTab(this,'${index}',2)"><a>base</a></li>`));
+    } else {
+        console.log("Error - buildTabs - addClass to li is not sanitized")
+    }
+
+    
+
     for (const item of data.data) {
         if (item.has_children) {
-            let li = $(
-                `<li name="${item.id}" onclick="openTab(this,'${index}.${item.id}',2)"><a>${item.id}</a></li>`
-                );
-            ul.append(sanitizer.sanitize(li));
+            // XSS prevention
+            const sanitized = `<li name="${item.id}" onclick="openTab(this,'${index}.${item.id}',2)"><a>${item.id}</a></li>`
+            if (sanitized) {
+                let li = $(`<li name="${item.id}" onclick="openTab(this,'${index}.${item.id}',2)"><a>${item.id}</a></li>`);
+                ul.append(li);
+            } else {
+                console.log("Error - buildTabs -  to li is not sanitized")
+            }
+            
         }
         sub_tab.append(ul);
     }
@@ -296,8 +335,7 @@ function buildTabs(index, data) {
 // function to build the answer section
 // this can be subtechnique answers or technique answers - depending on which tab the user is at
 function buildSectionAnswer(data) {
-    // let technique_ul = $(sanitizer.sanitize('<ul class="menu-list" style="display: none;"></ul>'));
-    let section_answers = $(sanitizer.sanitize('<section class="section"><h1 class="title">Answer Text</h1></section>'));
+    let section_answers = $('<section class="section"><h1 class="title">Answer Text</h1></section>');
     for (const item of data.data) {
         let mismapping = false;
         if (/^T[0-9]{4}/.test(item.id)) {
@@ -323,9 +361,7 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
             ["tactic", tactic],
             ["index", index]
         ]).toString();
-        mismap_element = $(sanitizer.sanitize(
-            `<a href="/edit/mismapping?${mismapLinkParams}">Edit Mismappings</a>`
-            ));
+        mismap_element = $(`<a href="/edit/mismapping?${mismapLinkParams}">Edit Mismappings</a>`);
     }
 
     // ATT&CK identifier, can also be "start"
@@ -334,7 +370,7 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
 
     // start box cannot be edited - fixed text
     if (attack_id === "start") {
-        box = $(sanitizer.sanitize(`
+        box = $(`
         <div class="box">
             <h6 class="title is-6">${attack_id}</h6>
             <div class="columns">
@@ -343,7 +379,7 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
                 </div>
             </div>
         </div>
-        `));
+        `);
     }
 
     // others are editable
@@ -366,7 +402,7 @@ function createEditBox(label, edit_text, view_text, type, mismap) {
     }
 
     box.append(mismap_element);
-    return sanitizer.sanitize(box);
+    return box;
 }
 
 // function to update content on each key press
@@ -385,9 +421,7 @@ var updateContent = _.debounce(function (elem) {
         contentType: "application/json",
         data: JSON.stringify(data),
         success: function (res) {
-            $(sanitizer.sanitize(
-                `[id="${textarea.data("id")}-render"]`
-            )).html(res.name);
+            $(`[id="${textarea.data("id")}-render"]`).html(res.name);
             populateSidebar();
         },
     });
@@ -423,21 +457,21 @@ function populateSidebar() {
             for (const chunk of missingChunks) {
                 // build techniques in group
                 let missingTechRows = _.map(chunk.techniques, function (tech) {
-                    return sanitizer.sanitize(`
+                    return `
                     <li onclick="opentab_missing_content(this,'${chunk.tactic_id}.${tech.tech_id}',${tech.level})">
                         <a><span class="icon" style="color: blue;">
                             <i class="mdi mdi-18px mdi-chat-processing"></i>
                         </span> ${tech.tech_id} (${tech.tech_name})</a>
-                    </li>`);
+                    </li>`;
                 });
 
                 // form chunk and add
-                let tacticChunk = $(sanitizer.sanitize(`
+                let tacticChunk = $(`
                     <p name="${chunk.tactic_id}" class="menu-label">${chunk.tactic_id} (${chunk.tactic_name})<p>
                     <ul class="menu-list">
                         ${_.join(missingTechRows, "")}
                     </ul>
-                `));
+                `);
                 $("#missingContent").append(tacticChunk);
             }
         },
@@ -488,7 +522,7 @@ function setErrorJumpToIDStatus(content) {
 function resetJumpToIDStatus() {
     let statusSpan = $("#editing-jump-to-id-status");
     statusSpan.css("color", "black");
-    statusSpan.html(sanitizer.sanitize("Tnnnn<u><b>.</b>nnn</u> or Tnnnn<u><b>/</b>nnn</u> allowed"));
+    statusSpan.html("Tnnnn<u><b>.</b>nnn</u> or Tnnnn<u><b>/</b>nnn</u> allowed");
 }
 
 // JumpToID button callback

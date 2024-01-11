@@ -1,37 +1,96 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 // function to sanitize HTML content
+
+//-------------------------
+// function to sanitize HTML content
 var sanitizer = {};
 
-(function($) {
+(function ($) {
     function trimAttributes(node) {
-        $.each(node.attributes, function() {
+        $.each(node.attributes, function () {
             var attrName = this.name;
             var attrValue = this.value;
-
-            // remove attribute name start with "on", possible unsafe,
-            // for example: onload, onerror...
-            //
-            // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
-            // for example href="javascript:alert(1)"
-            if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
-                $(node).removeAttr(attrName);
+            if (attrName) {
+                if (attrValue.indexOf("javascript:") == 0) {
+                    $(node).removeAttr(attrName);
+                }
+            } else {
             }
         });
     }
 
-    function sanitize(html) {
+    function sanitize(html, s = true) {
+        console.log("-----------------Start trace sanitize(html)---------------------------");
+        console.trace("sanitizer.sanitize html param", html);
+        console.log("----------------- End trace sanitize(html)---------------------------");
 
-
-        var output = $($.parseHTML('<div>' + html + '</div>', null, false));
-        output.find('*').each(function() {
+        var output = $($.parseHTML("<div>" + html + "</div>", null, false));
+        output.find("*").each(function () {
             trimAttributes(this);
         });
-        return output.html();
+        console.log("is output equal? output.html() ----------------------- 00000000000");
+        console.log(`html: \n , ${html}`);
+        console.log("output");
+        console.table(output);
+        console.log(`output.html(): \n, ${output.html()}`);
+
+        if (output.html() === html) {
+            console.log("**** output.html() ==== html *********");
+        } else {
+            console.log("**** output.html() !== html *********");
+        }
+
+        if (s) {
+            console.log("It is True - output ----------------------- 11111111112: \n");
+            console.table(output);
+            console.log("It is True - output.html() ----------------------- 11111111113: \n" + output.html());
+
+            if (output.html() === html) {
+                true;
+            } else {
+                false;
+            }
+
+            //return output.html();
+        } else {
+            console.log("stringResult Before replace output.html()----------------------- 222222222 : ");
+            // console.log(output);
+            console.log(output.html());
+
+
+            console.log("stringResult Before replace output ----------------------- 3333333333333 : ");
+            // console.log(JSON.parse(output.html()));
+            console.log("output: ");
+            console.table(output);
+
+
+            stringResult = output.html().replace(/<(|\/|[^>\/bi]|\/[^>bi]|[^\/>][^>]+|\/[^>][^>]+)>/g, "");
+
+            console.log("stringResult After output.html().replace  -----------------------444444444444 : ");
+            console.log(`stringResult: \n, ${stringResult}`);
+            console.log(`html: \n, ${html}`);
+
+            if (stringResult === html) {
+                console.log("**** stringResult ==== html *********");
+            } else {
+                console.log("**** stringResult!== html *********");
+            }
+
+            if (stringResult === html) {
+                return true;
+            } else {
+                return false;
+            }
+            // return true;
+        }
     }
 
     sanitizer.sanitize = sanitize;
 })(jQuery);
+
+// ------------------------
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -83,7 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function miniSearchTechniqueTemplate(t) {
-    return $(sanitizer.sanitize( `
+    const sanitized = sanitizer.sanitize( `
     <a href="${t.url}" class="dropdown-item">
         <div>
             <p class="search-result-p">
@@ -92,7 +151,19 @@ function miniSearchTechniqueTemplate(t) {
             </p>
         </div>
     </a>
-    `));
+    `)
+
+    if (sanitized)
+    return $(`
+    <a href="${t.url}" class="dropdown-item">
+        <div>
+            <p class="search-result-p">
+                <span class="tag is-link search-result-tag">${t.tech_id}</span>
+                ${t.tech_name}
+            </p>
+        </div>
+    </a>
+    `);
 }
 
 var miniSearch = _.debounce(function (search) {
@@ -104,9 +175,24 @@ var miniSearch = _.debounce(function (search) {
     }
 
     var attack_version = $("#versionSelect").val();
+    const sanitized = sanitizer.sanitize(
+        `<a href="#" onclick="gotoFullSearch(); event.preventDefault();" class="dropdown-item dropdown-item-selected">
+            <div>
+                <p class="search-result-p">
+                    <span class="tag is-link search-result-tag"><i class="mdi mdi-24px mdi-magnify" style="color: white;"></i></span>
+                    <b><i>Run as a Full Technique Search</i></b>
+                </p>
+            </div>
+        </a>`
+    )
+
+    const sanitized2 = sanitizer.sanitize(
+        "#searchBarCompletion > .dropdown-content > .dropdown-item-selected > div > .search-result-p"
+    )
 
     // Get Techniques from server and display
     $.ajax({
+
         type: "POST",
         url: `/search/mini/${attack_version}`,
         data: JSON.stringify({ search: search }),
@@ -117,22 +203,23 @@ var miniSearch = _.debounce(function (search) {
             $("#searchBarCompletion > .dropdown-content").empty();
 
             // Add default (1st) option: run search as full search
+            if (sanitized) 
             $("#searchBarCompletion > .dropdown-content").append(
-                $(sanitizer.sanitize(`<a href="#" onclick="gotoFullSearch(); event.preventDefault();" class="dropdown-item dropdown-item-selected">
+                $(`<a href="#" onclick="gotoFullSearch(); event.preventDefault();" class="dropdown-item dropdown-item-selected">
                     <div>
                         <p class="search-result-p">
                             <span class="tag is-link search-result-tag"><i class="mdi mdi-24px mdi-magnify" style="color: white;"></i></span>
                             <b><i>Run as a Full Technique Search</i></b>
                         </p>
                     </div>
-                </a>`))
+                </a>`)
             );
 
             // Add warning to full search option if there were no results
-            if (techniques.length === 0) {
-                $(sanitizer.sanitize(
+            if (techniques.length === 0 && sanitized2) {
+                $(
                     "#searchBarCompletion > .dropdown-content > .dropdown-item-selected > div > .search-result-p"
-                )).append(sanitizer.sanitize("<br><i>(no mini search results)</i>"));
+                ).append("<br><i>(no mini search results)</i>");
             }
 
             // On results: add entries

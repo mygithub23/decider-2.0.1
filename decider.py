@@ -43,9 +43,13 @@ import sys
 import importlib
 import json
 import traceback
+import bleach
 
 from app.version import DECIDER_APP_VERSION
 
+# Define the list of allowed tags and attributes
+allowed_tags = ['b', 'i', 'u', 'a']
+allowed_attributes = {'a': ['href', 'title']}
 
 # logging config - get from `app/logging_conf.json` and convert to dict
 with open("app/logging_conf.json", "r") as fh:
@@ -394,9 +398,18 @@ parser.add_argument(
     ),
 )
 args = parser.parse_args()
+logger.info("-------------------------------------------------------------")    
+logger.info(f"Using configuration: {args.config}")
+logger.info("-------------------------------------------------------------")    
 
 try:
     config = getattr(importlib.import_module("app.conf"), args.config)
+    logger.info("-------------------------------------------------------------")    
+    logger.info(f"config1 Not cleaned: {config}")
+    logger.info("-------------------------------------------------------------")    
+
+ 
+    
 except Exception:
     logger.exception(
         "Missing config. Please add the configuration name provided to app/conf.py or use an existing configuration."

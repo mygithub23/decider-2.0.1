@@ -1,0 +1,13 @@
+{
+    "title": "untitled-2024-01-05_11-28-31",
+    "version": "v13.0",
+    "entries": [
+        {
+            "name": "Scanning IP Blocks",
+            "index": "T1595.001",
+            "notes": "",
+            "tactic": "TA0043",
+            "tacticName": "Reconnaissance"
+        }
+    ]
+}

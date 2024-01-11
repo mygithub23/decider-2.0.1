@@ -19,6 +19,8 @@ window.question = {
 
 // On ready
 $(document).ready(function () {
+    console.log("--------------------------- trace document ready----------------------");
+    console.trace();
     $(window).on("resize", debounced_platformMatchHeight); // matches platform panel even after content reflow
 
     let version_v_strip = Math.floor(parseFloat($("#versionSelect").val().replace("v", "")));
@@ -31,104 +33,14 @@ $(document).ready(function () {
     initAnswerCards();
 });
 
-//----------------------------------------------------------------------------------------------------------------------
-// function to sanitize HTML content
-// let sanitizer = {};
-
-// (function($) {
-//     function trimAttributes(node) {
-//         $.each(node.attributes, function() {
-//             const attrName = this.name;
-//             const attrValue = this.value;
-
-//             // remove attribute name start with "on", possible unsafe,
-//             // for example: onload, onerror...
-//             //
-//             // remvoe attribute value start with "javascript:" pseudo protocol, possible unsafe,
-//             // for example href="javascript:alert(1)"
-//             if (attrName) {
-//                 // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-//                 // console.log('attrName:' + attrName);
-//                 // console.log('attrValue:' + attrValue);
-//                 // console.log('trmAttributes: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-//                 console.log("------------------------------------------------ trace ----------------------------------------------------------");
-//                 console.trace();
-//                 console.log("------------------------------------------------ trace ----------------------------------------------------------");
-//                 if (attrName.indexOf('on') == 0 || attrValue.indexOf('javascript:') == 0) {
-//                     $(node).removeAttr(attrName);
-//                 }
-//             }   
-//         });
-//     }
-
-//     function sanitize(html) {
-
-
-//         const output = $($.parseHTML('<div>' + html + '</div>', null, false));
-//         output.find('*').each(function() {
-//             trimAttributes(this);
-//         });
-
-//         return output.html();
-//     }
-
-//     sanitizer.sanitize = sanitize;
-// })(jQuery);
-
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Clean Strings from all html tags
-
-(function($) {
-    $.sanitize = function(input) {
-      /*
-        var output = input.replace(/<script[^>]*?>.*?<\/script>/gi, '').
-                     replace(/<[\/\!]*?[^<>]*?>/gi, '').
-                     replace(/<style[^>]*?>.*?<\/style>/gi, '').
-                     replace(/<![\s\S]*?--[ \t\n\r]*>/gi, '');
-        return output;
-        */
-        
-        return input.replace(/<(|\/|[^>\/bi]|\/[^>bi]|[^\/>][^>]+|\/[^>][^>]+)>/g, '');
-    };
-})(jQuery);
-
-$(function() {
-    $('#sanitize').click(function() {
-        var $input = $('#input').val();
-        $('#output').text($.sanitize($input));
-        console.log($.sanitize($input));
-    });
-
-});  
-
-// ---------------------------------------------------------------------------------------------------------------------
-/*
-const sanitizeHTML = function (str) {
-	return str.replace(/[^\w. ]/gi, function (c) {
-		return '&#' + c.charCodeAt(0) + ';';
-	});
-};
-
-// ---------------------------------------------------------------------------------------------------------------------
-const encodeHTML = function (str) {
-	return str.replace(/[^\w. ]/gi, function (c) {
-		return '&#' + c.charCodeAt(0) + ';';
-	});
-};
-
-let app = document.querySelector('#app');
-app.innerHTML = encodeHTML('<img src="x" onerror="alert(1)">');
-*/
-// ---------------------------------------------------------------------------------------------------------------------
 
 const debounced_platformMatchHeight = _.debounce(platformMatchHeight, 150);
 
 function platformMatchHeight() {
     // aligns platform filter column to height of answer cards
-    console.log("------------------------------------------------ trace ----------------------------------------------------------");
-    console.trace();
-    console.log("------------------------------------------------ trace ----------------------------------------------------------");
+    console.log("-----------------Start trace -debounced_platformMatchHeight--------------------------");
+    console.trace(platformMatchHeight);
+    console.log("----------------- End trace debounced_platformMatchHeight---------------------------");
 
     const navBar = $(".navbarSection");
     const navTop = navBar.position().top;
@@ -141,6 +53,9 @@ function platformMatchHeight() {
 }
 
 function initAnswerCards() {
+    console.log("-----------------Start trace initAnswerCards---------------------------");
+    console.trace();
+    console.log("----------------- End trace initAnswerCards---------------------------");
     // Lock input until data is ready
     $("#platform-selection input").prop("disabled", true);
     $("#questionSearch").prop("disabled", true);
@@ -163,28 +78,27 @@ function initAnswerCards() {
         },
         dataType: "json",
         success: function (answers) {
-            // Add default score to entries so they maintain original display order unless scored by MiniSearch; save
-            for (let i = 0; i < answers.length; i++) {
-                answers[i].score = -i;
-                answers[i].label = sanitizer.sanitize(`${answers[i].name} (${answers[i].id})`, false);
-                answers[i].highlights = {};
-                answers[i].content_text = sanitizer.sanitize($(answers[i].content).text(), false);
+        // Add default score to entries so they maintain original display order unless scored by MiniSearch; save
+            const sanitized = sanitizer.sanitize(JSON.stringify(answers, false))
+            if (sanitized) {
+                for (let i = 0; i < answers.length; i++) {
+                    answers[i].score = -i;
+                    answers[i].label = `${answers[i].name} (${answers[i].id})`;
+                    answers[i].highlights = {};
+                    answers[i].content_text = $(answers[i].content).text();
 
-                score = answers[i].score ;
-                label = answers[i].label;
-                highlights = answers[i].highlights ;
-                highlights2 =  answers[i].highlights;
-                content_text = answers[i].content_text ;
+                    score = answers[i].score ;
+                    label = answers[i].label;
+                    highlights = answers[i].highlights ;
+                    highlights2 =  answers[i].highlights;
+                    content_text = answers[i].content_text ;
 
-                // score = sanitizer.sanitize( answers[i].score );
-                // label = sanitizer.sanitize( answers[i].label );
-                // highlights = sanitizer.sanitize( answers[i].highlights );
-                // highlights2 =  answers[i].highlights;
-                // content_text = sanitizer.sanitize( answers[i].content_text );
-
-                console.log("score: " + score + ", label: " + label + ", highlights: " + highlights + ", content_text: " + content_text + "/n"); 
-                
+                    console.log("score: " + score + ", label: " + label + ", highlights: " + highlights + ", content_text: " + content_text + "/n"); 
+                }                
+            } else {
+                console.log("sanitizer.sanitize(JSON.stringify(answers, false)) is not sanitized xxxxxxxxxxxxxxxxxxxxxxxx")
             }
+                    
             question.answer_data = answers;
             question.answer_view = answers;
 
@@ -204,137 +118,143 @@ function initAnswerCards() {
 }
 
 function templateAndHighlightAnswer(ans_data) {
+    console.log("-----------------Start trace templateAndHighlightAnswer---------------------------");
+    console.log("templateAndHighlightAnswer(ans_data): ");
+    console.trace(ans_data)
+
+    console.log("----------------- End trace templateAndHighlightAnswer ---------------------------");
     // Render card with template
-    const ans_card = $(sanitizer.sanitize(answerTemplate(ans_data)), false);
-    console.log("answerTemplate(ans_data): ") 
-    console.table(ans_data)
-    console.log(Object.assign({}, ans_data));
-    const map = new Map(Object.entries(ans_data));
-    console.log(map)
+    console.log("answerTemplate(ans_data)")
+    console.log(answerTemplate(ans_data))
 
+    var ans_card = $(answerTemplate(ans_data));
+ 
+    console.log("ans_data: ") 
+    console.log(ans_data)
+    console.log(JSON.stringify(ans_data))
 
-    console.log("answerTemplate(ans_data): ") 
-    console.table(answerTemplate(ans_data))
-    console.log(Object.assign({}, answerTemplate(ans_data)));
-    const map2 = new Map(Object.entries(answerTemplate(ans_data)));
-    console.log(map2)
-
-    console.log("--/$answerTemplate(ans_data): ") 
-    console.table($(answerTemplate(ans_data)))
-    console.log(Object.assign({}, $(answerTemplate(ans_data))));
-
-    // console.log("answerTemplate(ans_data): " + answerTemplate(ans_data))
-    // console.log("$(answerTemplate(ans_data)): " + $(answerTemplate(ans_data)))
-    // console.log("sanitizer.sanitize(answerTemplate(ans_data)): " + sanitizer.sanitize(answerTemplate(ans_data)))
-    // console.log("$(sanitizer.sanitize(answerTemplate(ans_data)): " + $(sanitizer.sanitize(answerTemplate(ans_data))))
-
-    // Highlight label and content sections for matched terms
-    if ("label" in ans_data.highlights)
+        // Highlight label and content sections for matched terms
+    if ("label" in ans_data.highlights) {
+        console.log('"label" in ans_data.highlights) ')
         ans_card.find(".ans-label").mark(ans_data.highlights.label, question.markjs_opts);
-    if ("content_text" in ans_data.highlights)
+
+    }
+        
+    if ("content_text" in ans_data.highlights) {
+        console.log('"content_text" in ans_data.highlights) ')
         ans_card.find(".ans-content").mark(ans_data.highlights.content_text, question.markjs_opts);
+    }
+        
+ 
+    // if (answerTemplate(ans_data)) {
+    //     if ("label" in ans_data.highlights)
+    //         ans_card.find(".ans-label").mark(ans_data.highlights.label, question.markjs_opts);
+    //     if ("content_text" in ans_data.highlights)
+    //         ans_card.find(".ans-content").mark(ans_data.highlights.content_text, question.markjs_opts);
+    // } else {console.log("sanitizer.sanitize(answerTemplate(ans_data)), false)  is not true xxxxxxxxxxxxxxxxxxxxxxx")}    
+    console.log("ans_data: ") 
+    console.log(ans_data)
+    console.log(JSON.stringify(ans_data))  
+    console.log("return ans_card: ") 
+    console.table(ans_card);
 
     return ans_card;
 }
 
 function gotoAnswerPage(page_num) {
-    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
-    console.trace();
-    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+    console.log("-----------------Start trace gotoAnswerPage ---------------------------");
+    console.log("gotoAnswerPage(page_num): " ) 
+    console.trace(page_num);
+    console.log("----------------- End trace gotoAnswerPage ---------------------------");
 
     const PER_PAGE = 5; // Configurable
     const answers_view = question.answer_view;
     console.log("gotoAnswerPage(page_num): " + page_num);
-    // console.log("answers_view: " + answers_view);
-    // console.log("answer_view: " + answer_view) 
-    // console.table(answer_view)
+
 
     // Start page has content changed in-place: gotoAnswerPage(1) is called on page load
     if (question.index === "start") {
         // Holds all answer cards
-        const grid =  $(sanitizer.sanitize("<div></div>"));
-        console.log("grid:  ")  
-        console.table(grid);
-
-        // console.log('$("<div></div>")' + $("<div></div>"))
-        // console.log('$(sanitizer.sanitize("<div></div>"): ' + $(sanitizer.sanitize("<div></div>")))
-        // console.log('sanitizer.sanitize($("<div></div>"): '+ sanitizer.sanitize($("<div></div>")))
+        const sanitized  = sanitizer.sanitize("<div></div>")
+        const grid1 = "<div></div>";
         // For all answer cards we have
-        for (var i = 0; i < answers_view.length; i++) {
-            // Create a new row for each 3 cards, add to master holder
-            if (i % 3 === 0) {
-                const row = $(sanitizer.sanitize('<div class="columns"></div>'));
-                console.log("row:  ") 
-                console.table(row);
-                
-                // console.log('$(<div class="columns"></div>)): ' + $('<div class="columns"></div>'))
-                // console.log('$(sanitizer.sanitize(<div class="columns"></div>)): '+ $(sanitizer.sanitize('<div class="columns"></div>')))
-                // console.log('sanitizer.sanitize$((<div class="columns"></div>)): '+ sanitizer.sanitize($('<div class="columns"></div>')))
+        if (sanitized) {
+            const grid =  $(grid1);
+        // For all answer cards we have
+            for (var i = 0; i < answers_view.length; i++) {
+                // Create a new row for each 3 cards, add to master holder
+                if (i % 3 === 0) {
+                    var row = $('<div class="columns"></div>');
+                    console.log("row:  ") 
+                    console.table(row);
+                    const map = new Map(Object.entries(row));
+                    console.log(map)
+                    grid.append(row);
+                }
 
-                grid.append(row);
+                // Wrap answer card with column div
+                var piece = $('<div class="column is-one-third tactic-column"></div>');
+                console.log("piece: ") 
+                console.table(piece);
+                console.log(Object.assign({}, piece));
+                
+                
+                const map = new Map(Object.entries(piece));
+                console.log(map)
+                piece.append(templateAndHighlightAnswer(answers_view[i]));
+
+                // Add chunk to current row
+                grid.children().last().append(piece);
             }
 
-            // Wrap answer card with column div
-            const piece = $(sanitizer.sanitize('<div class="column is-one-third tactic-column"></div>'));
+            $("#answer-list").empty();
+            $("#answer-list").append(grid);
 
-            
-
-            //console.log('$(<div class="column is-one-third tactic-column"></div>);' + $('<div class="column is-one-third tactic-column"></div>'))
-            // console.log('$(sanitizer.sanitize(<div class="column is-one-third tactic-column"></div>)): ' + $(sanitizer.sanitize('<div class="column is-one-third tactic-column"></div>')))
-            // console.log('sanitizer.sanitize($(<div class="column is-one-third tactic-column"></div>)): ' + sanitizer.sanitize($('<div class="column is-one-third tactic-column"></div>')))
-
-            piece.append(templateAndHighlightAnswer(answers_view[i]));
-            console.log("piece: ") 
-            console.table(piece);
-
-            // Add chunk to current row
-            grid.children().last().append(piece);
+            return;
+        } else {
+            console.log("gotoAnswerPage is not True xxxxxxxxxxxxxxxxxxxxxxx");
+            return;
         }
-
-        $("#answer-list").empty();
-        $("#answer-list").append(grid);
-
-        return;
     }
+        
 
     // [Answer Cards] Get answer data, trim to current view, clear cards, repopulate
-    const current_answers = _.slice(answers_view, PER_PAGE * (page_num - 1), PER_PAGE * page_num);
-    console.log("current_answers: " + current_answers);
+    const current_answers = _.slice(answers_view, PER_PAGE * (page_num - 1), PER_PAGE * page_num);    
     const answer_list = $("#answer-list");
-    console.log("answer_list: " + answer_list);
     answer_list.empty();
     _.forEach(current_answers, function (ans_data) {
         answer_list.append(templateAndHighlightAnswer(ans_data));
     });
-    console.log("answer_list.append(templateAndHighlightAnswer(ans_data)): " + answer_list);
 
     // [Page Nav Bar] Calc total # of pages, fill list with page buttons, clear current, repopulate
-    const total_pages = Math.ceil(answers_view.length / PER_PAGE);
-    console.log("total_pages: " + total_pages);
-    const page_list = $(sanitizer.sanitize("<ul>", { class: "pagination-list" }));
-    console.log('page_list: ' + page_list);
-
-    // console.log('$("<ul>", { class: "pagination-list" }): ' + $("<ul>", { class: "pagination-list" }))
-    // console.log('$(sanitizer.sanitize("<ul>", { class: "pagination-list" })): ' + $(sanitizer.sanitize("<ul>", { class: "pagination-list" })))
-    // console.log('sanitizer.sanitize($("<ul>", { class: "pagination-list" })): ' + sanitizer.sanitize($("<ul>", { class: "pagination-list" })))
-
+    var total_pages = Math.ceil(answers_view.length / PER_PAGE);
+    var page_list = $("<ul>", { class: "pagination-list" });
     for (var cur_page = 1; cur_page <= total_pages; cur_page++) {
         page_list.append($(pageButtonTemplate(cur_page, cur_page === page_num)));
     }
-    console.log("page_list.append($(pageButtonTemplate(cur_page, cur_page === page_num))):" + page_list)
-    const answer_nav = $("#answer-nav");
-    console.log("answer_nav: " + answer_nav);
+    var answer_nav = $("#answer-nav");
     answer_nav.empty();
     answer_nav.append(page_list);
-    console.log("answer_nav.append(page_list): " + answer_nav);
+
+    // const total_pages = Math.ceil(answers_view.length / PER_PAGE);
+    // console.log("total_pages: " + total_pages);
+    // const page_list = $(sanitizer.sanitize("<ul>", { class: "pagination-list" }));
+
+    // if (sanitizer.sanitize("<ul>", { class: "pagination-list" })){
+    //     for (var cur_page = 1; cur_page <= total_pages; cur_page++) {
+    //         page_list.append($(pageButtonTemplate(cur_page, cur_page === page_num)));
+    //     }
+    // } else { console.log ("pagination-list is not True xxxxxxxxxxxxxxxxxxxxxxx"); }
+
+    
 }
 
 function questionRenderFrontendSearch(answer_data) {
-    const map = new Map(Object.entries(answer_data));
-    console.log(map)
-    console.log(Object.assign({}, answer_data));
-    // console.log("questionRenderFrontendSearch(answer_data): " + answer_data);
-   // console.log("questionRenderFrontendSearch(answer_data): " + answer_data);
+    console.log("-----------------Start trace questionRenderFrontendSearch ---------------------------");
+    console.log("questionRenderFrontendSearch(answer_data): " )
+    console.trace(answer_data);
+    console.log("----------------- End trace questionRenderFrontendSearch ---------------------------");
+
 
     // Terms are space-seperated chunks of text
     var terms = _.filter(question.search_str.toLowerCase().split(" "), function (t) {
@@ -442,9 +362,9 @@ function questionRenderFrontendSearch(answer_data) {
 }
 
 function questionRenderBackendSearchRequest(answer_data) {
-    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
-    console.trace();
-    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+    console.log("-----------------Start trace questionRenderBackendSearchRequest---------------------------");
+    console.trace("questionRenderBackendSearchRequest(answer_data): " , answer_data);
+    console.log("----------------- End trace -questionRenderBackendSearchRequest --------------------------");
 
     // form URL params for request
     let ansList = $("#answer-list");
@@ -483,26 +403,23 @@ function questionRenderBackendSearchRequest(answer_data) {
 }
 
 function questionRenderBackendSearchResponse(answer_data, searchResponse) {
-    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
-    console.trace();
-    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+    console.log("-----------------Start trace ---------------------------");
+    console.trace("questionRenderBackendSearchResponse(answer_data, searchResponse): " , answer_data);
+    console.trace("questionRenderBackendSearchResponse(answer_data, searchResponse): " , searchResponse);
+    console.log("----------------- End trace ---------------------------");
 
-    console.log("questionRenderBackendSearchResponse(answer_data, searchResponse): " + answer_data);
-    console.log("questionRenderBackendSearchResponse(answer_data, answer_data): " + answer_data);
+    console.log("questionRenderBackendSearchResponse - answer_data): " )
+    console.log(answer_data);
+    console.log("questionRenderBackendSearchResponse- searchResponse ): ") 
+    console.log(searchResponse);
     // search successful
     if ("results" in searchResponse) {
         // there were results -> set status and re-order / highlight cards
-        if (Object.keys(searchResponse.results).length > 0) {
-            // $(sanitizer.sanitize("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}`));
-            sanitizer.sanitize($("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}`));
-
-            // console.log('$("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}`): ' + $("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}`))
-            // console.log('$(sanitizer.sanitize("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}`)): ' + $(sanitizer.sanitize("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}`)))
-            // console.log('sanitizer.sanitize($("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}`)): ' + sanitizer.sanitize($("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}`)))
-            // console.log('$("#ans-search-status").html(sanitizer.sanitize(`<b>Search Used:</b> ${searchResponse.status}`)): ' + $("#ans-search-status").html(sanitizer.sanitize(`<b>Search Used:</b> ${searchResponse.status}`)))
-            // console.log('$(sanitizer.sanitize("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}`));')
+        if (Object.keys(searchResponse.results).length > 0) {       
+            // if (sanitizer.sanitize(`<b>Search Used:</b> ${searchResponse.status}`)) {
+            $("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}`);
+            // } else {console.log("searchResponse is not true xxxxxxxxxxxxxxxxxxxx")}
             
-
             // update answer cards with search result scores
             _.forEach(answer_data, function (answerEntry) {
                 if (answerEntry.id in searchResponse.results) {
@@ -534,50 +451,64 @@ function questionRenderBackendSearchResponse(answer_data, searchResponse) {
                     return -c.score;
                 },
             ]);
-        }
-
-        // no matches found -> just set status
-        else {
-            sanitizer.sanitize($("#ans-search-status").html(`
+            // no matches found -> just set status
+        }  else {
+            $("#ans-search-status").html(`
                 <b>Search Used:</b> ${searchResponse.status}<br>
                 <span style="color: red;"><i>No matches - cards will stay in their default order</i></span>
-            `));
-            
-            // console.log('$("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}<br><span style="color: red;"><i>No matches - cards will stay in their default order</i></span>`): ' + $("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}<br><span style="color: red;"><i>No matches - cards will stay in their default order</i></span>`))
-            // console.log('$(sanitizer.sanitize("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}<br><span style="color: red;"><i>No matches - cards will stay in their default order</i></span>`)): ') + $(sanitizer.sanitize("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}<br><span style="color: red;"><i>No matches - cards will stay in their default order</i></span>`))
-            // console.log('sanitizer.sanitize($("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}<br><span style="color: red;"><i>No matches - cards will stay in their default order</i></span>`)): ') + sanitizer.sanitize($("#ans-search-status").html(`<b>Search Used:</b> ${searchResponse.status}<br><span style="color: red;"><i>No matches - cards will stay in their default order</i></span>`))
-        }
-
+            `);
+        }          
+        question.answer_view = answer_data;
+        gotoAnswerPage(1);
+        
         console.log("answer_data: " + answer_data);
         console.log("answer_data.length: " + answer_data.length);
         console.log("question.answer_data: " + question.answer_data);
-
-        question.answer_view = answer_data;
-        gotoAnswerPage(1);
-    }
 
     // bad search query
-    else {
+    }else {
         // display error status in red
-        sanitizer.sanitize($("#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span>`));
-                         //$("#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span>`)
-        // console.log('$("#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span>`): ' + $("#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span>`))
-        // console.log('$(sanitizer.sanitize("#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span>`)): ' + $(sanitizer.sanitize("#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span>`)))
-        // console.log('sanitizer.sanitize($("#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span>`)): ' + sanitizer.sanitize($("#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span>`)))
+        $("#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span>`);
 
         // don't re-order / highlight answers
-        console.log("answer_data: " + answer_data);
-        console.log("answer_data.length: " + answer_data.length);
-        console.log("question.answer_data: " + question.answer_data);
         question.answer_view = answer_data;
         gotoAnswerPage(1);
     }
+
+
+
+            // no matches found -> just set status
+        // else {
+        //     if ( sanitizer.sanitize($("#ans-search-status").html(`
+        //             <b>Search Used:</b> ${searchResponse.status}<br>
+        //             <span style="color: red;"><i>No matches - cards will stay in their default order</i></span>
+        //         `))) 
+        //     {
+        //         $("#ans-search-status").html(`
+        //             <b>Search Used:</b> ${searchResponse.status}<br>
+        //             <span style="color: red;"><i>No matches - cards will stay in their default order</i></span>
+        //         `);
+        //     }
+        // }
+                
+    //     if (sanitizer.sanitize($("#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span>`))) 
+    //     {
+    //         $("#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span>`);
+    //     // don't re-order / highlight answers
+    //         console.log("answer_data: " + answer_data);
+    //         console.log("answer_data.length: " + answer_data.length);
+    //         console.log("question.answer_data: " + question.answer_data);
+    //         question.answer_view = answer_data;
+    //         gotoAnswerPage(1);
+    //     } else {console.log('#ans-search-status").html(`<span style="color: red;">${searchResponse.status}</span> is not true xxxxxxxxxxxxxxxxxxxx');}
+    // }
+
 }
 
 function questionRender() {
-    console.log("------------------------------------------------Start trace ----------------------------------------------------------");
-    console.trace();
-    console.log("------------------------------------------------ End trace ----------------------------------------------------------");
+    console.log("-----------------Start trace questionRender---------------------------");
+    console.trace(JSON.parse(JSON.stringify(question.answer_data)));
+    console.log("----------------- End trace questionRender ---------------------------");
 
     // clone data for transform, get filters of cards to remove
     const answer_data = JSON.parse(JSON.stringify(question.answer_data));
@@ -635,7 +566,17 @@ function questionRender() {
 }
 
 function answerTemplate(answer) {
+    console.log("-----------------------Start trace answerTemplate------------------------");
+    console.trace("answerTemplate", answer);
+    console.log("------------------------ End trace answerTemplate--------------------");
     // form additional matches section if present and 1+ matches exist
+    console.log("answer table: \n")
+    console.table(answer);
+    console.log("answer: \n")
+    console.log(answer);
+    console.log('answer.highlights \n') 
+    console.log(answer.highlights)
+    // console.log(`answer.highlights.additional.length \n ${answer.highlights.additional.length}`);
 
     let additionalMatches = "";
     if ("additional" in answer.highlights && answer.highlights.additional.length !== 0) {
@@ -650,78 +591,125 @@ function answerTemplate(answer) {
             matchLocations = "Description / SubTechniques";
         }
 
-        additionalMatches = sanitizer.sanitize(
-            `<p class="ans-additional-matches"><i>
+        additionalMatches = `<p class="ans-additional-matches"><i>
         <u>Matches in ${matchLocations}:</u> ${_.join(answer.highlights.additional, ", ")}
-        </i><p>`);
+        </i><p>`;
+        
         console.log("additionalMatches: " + additionalMatches);
-
-        // console.log('`<p class="ans-additional-matches"><i><u>Matches in ${matchLocations}:</u> ${_.join(answer.highlights.additional, ", ")}</i><p>`: ' + `<p class="ans-additional-matches"><i><u>Matches in ${matchLocations}:</u> ${_.join(answer.highlights.additional, ", ")}</i><p>`)
-        // console.log('sanitizer.sanitize(`<p class="ans-additional-matches"><i><u>Matches in ${matchLocations}:</u> ${_.join(answer.highlights.additional, ", ")}</i><p>`): ' + sanitizer.sanitize(`<p class="ans-additional-matches"><i><u>Matches in ${matchLocations}:</u> ${_.join(answer.highlights.additional, ", ")}</i><p>`))
     }
 
-    return sanitizer.sanitize(`
-        <div class="card answer box is-flex-grow-1" data-tech-id="${answer.id}">
-            <div class="columns">
-                <div class="column">
-                    <a target="_blank" rel="noreferrer noopener" class="ans-url" href="${answer.url}">
-                        <span class="ans-label">${answer.name} (${answer.id})</span>
-                        <span class="icon is-small">
-                            <i class="mdi mdi-link"></i>
-                        </span>
-                    </a>
-                </div>
-                <div class="column is-narrow count-column">
-                    <a>
-                        <p class="ans-num">
-                            <span class="icon is-small equal-height">
-                                <i class="mdi mdi-file-tree-outline"></i>
-                            </span>
-                            ${answer.num}
-                        </p>
-                    </a>
-                </div>
+    const sanitized = sanitizer.sanitize(`
+    <div class="card answer box is-flex-grow-1" data-tech-id="${answer.id}">
+        <div class="columns">
+            <div class="column">
+                <a target="_blank" rel="noreferrer noopener" class="ans-url" href="${answer.url}">
+                    <span class="ans-label">${answer.name} (${answer.id})</span>
+                    <span class="icon is-small">
+                        <i class="mdi mdi-link"></i>
+                    </span>
+                </a>
             </div>
-
-            <div class="card-content">
-                <a class="ans-path" href="${answer.path}">
-                    <!-- <p class="is-size-5 ans-text">answer.text</p> -->
-                    <div class="md-content ans-content is-size-5">
-                        ${answer.content}
-                    </div>
-                    ${additionalMatches}
+            <div class="column is-narrow count-column">
+                <a>
+                    <p class="ans-num">
+                        <span class="icon is-small equal-height">
+                            <i class="mdi mdi-file-tree-outline"></i>
+                        </span>
+                        ${answer.num}
+                    </p>
                 </a>
             </div>
         </div>
-    `);
+
+        <div class="card-content">
+            <a class="ans-path" href="${answer.path}">
+                <!-- <p class="is-size-5 ans-text">answer.text</p> -->
+                <div class="md-content ans-content is-size-5">
+                    ${answer.content}
+                </div>
+                ${additionalMatches}
+            </a>
+        </div>
+    </div>
+`);
+    if (sanitized){
+        return `
+            <div class="card answer box is-flex-grow-1" data-tech-id="${answer.id}">
+                <div class="columns">
+                    <div class="column">
+                        <a target="_blank" rel="noreferrer noopener" class="ans-url" href="${answer.url}">
+                            <span class="ans-label">${answer.name} (${answer.id})</span>
+                            <span class="icon is-small">
+                                <i class="mdi mdi-link"></i>
+                            </span>
+                        </a>
+                    </div>
+                    <div class="column is-narrow count-column">
+                        <a>
+                            <p class="ans-num">
+                                <span class="icon is-small equal-height">
+                                    <i class="mdi mdi-file-tree-outline"></i>
+                                </span>
+                                ${answer.num}
+                            </p>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card-content">
+                    <a class="ans-path" href="${answer.path}">
+                        <!-- <p class="is-size-5 ans-text">answer.text</p> -->
+                        <div class="md-content ans-content is-size-5">
+                            ${answer.content}
+                        </div>
+                        ${additionalMatches}
+                    </a>
+                </div>
+            </div>
+        `;
+    } else { console.log("additionalMatches: " + additionalMatches + " is not true xxxxxxxxxxxxxxxxxxxx"); }
 }
 
 function pageButtonTemplate(page_num, is_current) {
+    console.log("-----------------------------Start trace pageButtonTemplate-----------------------------");
+    console.trace("pageButtonTemplate", page_num);
+    console.trace("pageButtonTemplate", is_current);
+    console.log("------------------------------- End trace pageButtonTemplate-------------------------------");
     console.log("page_num: " + page_num);
     console.log("is_current: " + is_current);
-    if (is_current) {
-        // console.log('`<button class="pagination-link is-current">${page_num}</button>`: ' + `<button class="pagination-link is-current">${page_num}</button>`)
-        // console.log('sanitizer.sanitize(`<button class="pagination-link is-current">${page_num}</button>`): ' + sanitizer.sanitize(`<button class="pagination-link is-current">${page_num}</button>`))
 
-        return sanitizer.sanitize(`<button class="pagination-link is-current">${page_num}</button>`);
+    const sanitized = `<button class="pagination-link is-current">${page_num}</button>`;
+
+    if (sanitized) {
+        if (is_current) {
+            return `<button class="pagination-link is-current">${page_num}</button>`;
+        } else {
+            return `<button class="pagination-link" onclick="gotoAnswerPage(${page_num})">${page_num}</button>`;
+        }
     } else {
-        return sanitizer.sanitize(`<button class="pagination-link" onclick="gotoAnswerPage(${page_num})">${page_num}</button>`);
+        console.log("pagination-link 2 is not true xxxxxxxxxxxxxxxxxxxxxxx");
     }
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
+// ------------------------
 // Page interaction callbacks: filtering & search
 
 const questionUpdateSearchString = _.debounce(function (search_str) {
-    console.log("search_str: " + search_str);
-    console.log("questionUpdateSearchString: " + questionUpdateSearchString);
-    // clear status (for backend, not present for front-end)
+    console.log("--------------------Start trace questionUpdateSearchString -----------------------");
+    console.trace("questionUpdateSearchString", search_str);
+    console.log("------------------- End trace questionUpdateSearchString ----------------------");
+
     if ($("#ans-search-status").length) {
         $("#ans-search-status").html("");
     }
 
     // run search
-    console.log("question.search_str: " + question.search_str);
+    console.log("search_str: " + search_str);
+    console.log("question.search_str: ")
+    console.log(question.search_str);
+
+
+    // run search
     question.search_str = search_str;
     questionRender();
 }, 200);
