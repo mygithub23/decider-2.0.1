@@ -18,6 +18,100 @@ $(document).ready(function () {
     }
 });
 
+
+//----------------------------------------------------------------------------------------------------------------------
+
+//-------------------------
+// function to sanitize HTML content
+var sanitizer = {};
+
+(function ($) {
+    function trimAttributes(node) {
+        $.each(node.attributes, function () {
+            var attrName = this.name;
+            var attrValue = this.value;
+            if (attrName) {
+                if (attrValue.indexOf("javascript:") == 0) {
+                    $(node).removeAttr(attrName);
+                }
+            } else {
+            }
+        });
+    }
+
+    function sanitize(html, s = true) {
+        console.log("-----------------Start trace sanitize(html)---------------------------");
+        console.trace("sanitizer.sanitize html param", html);
+        console.log("----------------- End trace sanitize(html)---------------------------");
+
+        var output = $($.parseHTML("<div>" + html + "</div>", null, false));
+        output.find("*").each(function () {
+            trimAttributes(this);
+        });
+        console.log("is output equal? output.html() ----------------------- 00000000000");
+        console.log(`html: \n , ${html}`);
+        console.log("output");
+        console.table(output);
+        console.log(`output.html(): \n, ${output.html()}`);
+
+        if (output.html() === html) {
+            console.log("**** output.html() ==== html *********");
+        } else {
+            console.log("**** output.html() !== html *********");
+        }
+
+        if (s) {
+            console.log("It is True - output ----------------------- 11111111112: \n");
+            console.table(output);
+            console.log("It is True - output.html() ----------------------- 11111111113: \n" + output.html());
+
+            if (output.html() === html) {
+                true;
+            } else {
+                false;
+            }
+
+            //return output.html();
+        } else {
+            console.log("stringResult Before replace output.html()----------------------- 222222222 : ");
+            // console.log(output);
+            console.log(output.html());
+
+
+            console.log("stringResult Before replace output ----------------------- 3333333333333 : ");
+            // console.log(JSON.parse(output.html()));
+            console.log("output: ");
+            console.table(output);
+
+
+            stringResult = output.html().replace(/<(|\/|[^>\/bi]|\/[^>bi]|[^\/>][^>]+|\/[^>][^>]+)>/g, "");
+
+            console.log("stringResult After output.html().replace  -----------------------444444444444 : ");
+            console.log(`stringResult: \n, ${stringResult}`);
+            console.log(`html: \n, ${html}`);
+
+            if (stringResult === html) {
+                console.log("**** stringResult ==== html *********");
+            } else {
+                console.log("**** stringResult!== html *********");
+            }
+
+            if (stringResult === html) {
+                return true;
+            } else {
+                return false;
+            }
+            // return true;
+        }
+    }
+
+    sanitizer.sanitize = sanitize;
+})(jQuery);
+
+// ------------------------
+
+// ---------------------------------------------------------------------------------------------------------------------
+
 // --------------------------------------------------------------------------------------------------------------------
 // Bulma Toast Config
 
@@ -214,24 +308,42 @@ function spawnAlertModal(title, content) {
     // hides and then removes from DOM
     let close_n_kill = `closeModal('#${modal_id}'); $('#${modal_id}').remove();`;
 
-    // throw into DOM
-    $(document.body).append(`
-    <div class="modal is-active" id="${modal_id}">
-        <div class="modal-background" onclick="${close_n_kill}"></div>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">${_.escape(title)}</p>
-                <button class="delete" aria-label="close" onclick="${close_n_kill}"></button>
-            </header>
-            <section class="modal-card-body default-list">
-                ${_.escape(content)}
-            </section>
-            <footer class="modal-card-foot">
-                <button class="button is-info" onclick="${close_n_kill}">Ok</button>
-            </footer>
+    const sanitized = sanitizer.sanitize(`
+        <div class="modal is-active" id="${modal_id}">
+            <div class="modal-background" onclick="${close_n_kill}"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">${_.escape(title)}</p>
+                    <button class="delete" aria-label="close" onclick="${close_n_kill}"></button>
+                </header>
+                <section class="modal-card-body default-list">
+                    ${_.escape(content)}
+                </section>
+                <footer class="modal-card-foot">
+                    <button class="button is-info" onclick="${close_n_kill}">Ok</button>
+                </footer>
+            </div>
         </div>
-    </div>
-    `);
+    `)
+    // throw into DOM
+    if (sanitized)
+    $(document.body).append(`
+            <div class="modal is-active" id="${modal_id}">
+                <div class="modal-background" onclick="${close_n_kill}"></div>
+                <div class="modal-card">
+                    <header class="modal-card-head">
+                        <p class="modal-card-title">${_.escape(title)}</p>
+                        <button class="delete" aria-label="close" onclick="${close_n_kill}"></button>
+                    </header>
+                    <section class="modal-card-body default-list">
+                        ${_.escape(content)}
+                    </section>
+                    <footer class="modal-card-foot">
+                        <button class="button is-info" onclick="${close_n_kill}">Ok</button>
+                    </footer>
+                </div>
+            </div>
+            `);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

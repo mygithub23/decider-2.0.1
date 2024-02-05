@@ -1,0 +1,63 @@
+{
+    "name": "layer",
+    "versions": {
+        "attack": "13.0",
+        "navigator": "4.8.0",
+        "layer": "4.4"
+    },
+    "domain": "enterprise-attack",
+    "description": "",
+    "filters": {
+        "platforms": [
+            "Linux",
+            "macOS",
+            "Windows",
+            "Azure AD",
+            "Office 365",
+            "SaaS",
+            "IaaS",
+            "Google Workspace",
+            "PRE",
+            "Network",
+            "Containers"
+        ]
+    },
+    "sorting": 0,
+    "layout": {
+        "layout": "side",
+        "aggregateFunction": "average",
+        "showID": false,
+        "showName": true,
+        "showAggregateScores": false,
+        "countUnscored": false
+    },
+    "hideDisabled": false,
+    "techniques": [
+        {
+            "techniqueID": "T1595.001",
+            "tactic": "reconnaissance",
+            "color": "#e60d0d",
+            "comment": "",
+            "enabled": "true",
+            "metadata": [],
+            "links": [],
+            "showSubtechniques": true
+        }
+    ],
+    "gradient": {
+        "colors": [
+            "#ff6666ff",
+            "#ffe766ff",
+            "#8ec843ff"
+        ],
+        "minValue": 0,
+        "maxValue": 100
+    },
+    "legendItems": [],
+    "metadata": [],
+    "links": [],
+    "showTacticRowBackground": false,
+    "tacticRowBackground": "#dddddd",
+    "selectTechniquesAcrossTactics": true,
+    "selectSubtechniquesWithParent": false
+}

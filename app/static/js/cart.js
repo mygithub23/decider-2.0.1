@@ -17,14 +17,17 @@ $(document).ready(function () {
     }
 
     var shown = sessionStorage.getItem("cart-shown");
+    console.log("shown: " + shown);
     if (shown === null || shown === "" || shown === "no") {
         sessionStorage.setItem("cart-shown", "no");
+        console.log('sessionStorage.getItem("cart-shown", "no"): \n' + sessionStorage.getItem("cart-shown", "no"));
         $("#cartColumn").hide();
     } else {
         $("#cartColumn").show();
     }
 
     // auto-save feature present and enabled -> visually show that
+
     if ($("#auto-save").length !== 0 && sessionStorage.getItem("auto-save") === "true")
         $("#auto-save").prop("checked", true);
 
@@ -35,55 +38,235 @@ $(document).ready(function () {
     $("#cartFile").on("input", uploadCart);
 });
 
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------
+
+//-------------------------
+// function to sanitize HTML content
+var sanitizer = {};
+
+(function ($) {
+    function trimAttributes(node) {
+        $.each(node.attributes, function () {
+            var attrName = this.name;
+            var attrValue = this.value;
+            if (attrName) {
+                if (attrValue.indexOf("javascript:") == 0) {
+                    $(node).removeAttr(attrName);
+                }
+            } else {
+            }
+        });
+    }
+
+    function sanitize(html, s = true) {
+        console.log("-----------------Start trace sanitize(html)---------------------------");
+        console.trace("sanitizer.sanitize html param", html);
+        console.log("----------------- End trace sanitize(html)---------------------------");
+
+        var output = $($.parseHTML("<div>" + html + "</div>", null, false));
+        output.find("*").each(function () {
+            trimAttributes(this);
+        });
+
+        console.log("is output equal? output.html() ----------------------- 00000000000");
+        console.log("html: \n" )
+        console.log(html)
+        console.log("output");
+        console.table(output);
+        console.log("output.html(): \n")
+        console.log(output.html())
+
+        if (output.html() === html) {
+            console.log("**** output.html() ==== html *********");
+        } else {
+            console.log("**** output.html() !== html *********");
+        }
+
+        if (s) {
+            console.log("It is True - output ----------------------- 11111111112: \n");
+            console.table(output);
+            console.log("It is True - output.html() ----------------------- 11111111113: \n" + output.html());
+
+            if (output.html() === html) {
+                console.log("**** output.html() ==== html *********");
+                return true;
+            } else {
+                return false;
+                console.log("**** output.html() !== html *********");
+            }
+
+            //return output.html();
+        } else {
+            console.log("stringResult Before replace output.html()----------------------- 222222222 : ");
+            // console.log(output);
+            console.log(output.html());
+
+            console.log("stringResult Before replace output ----------------------- 3333333333333 : ");
+            // console.log(JSON.parse(output.html()));
+            console.log("output: ");
+            console.table(output);
+
+            stringResult = output.html().replace(/<(|\/|[^>\/bi]|\/[^>bi]|[^\/>][^>]+|\/[^>][^>]+)>/g, "");
+
+            console.log("stringResult After output.html().replace  -----------------------444444444444 : ");
+            console.log(`stringResult: \n, ${stringResult}`);
+            console.log(`html: \n, ${html}`);
+
+            if (stringResult === html) {
+                console.log("**** stringResult ==== html *********");
+            } else {
+                console.log("**** stringResult!== html *********");
+            }
+
+            if (stringResult === html) {
+                return true;
+            } else {
+                return false;
+            }
+            // return true;
+        }
+    }
+
+    sanitizer.sanitize = sanitize;
+})(jQuery);
+
+// ------------------------
 
 function emptyCartString() {
     return '{ "title": null, "version": null, "entries": [] }';
 }
 
 function getCart() {
+    console.log("-----------------Start trace getCart -------------------------");
+    console.trace();
+    console.log("----------------- End trace getCart --");
+
     var cartStr;
     var cartObj;
 
     cartStr = sessionStorage.getItem("cart");
 
-    try {
-        cartObj = JSON.parse(cartStr);
-        if (
-            !cartObj.hasOwnProperty("title") ||
-            !cartObj.hasOwnProperty("version") ||
-            !cartObj.hasOwnProperty("entries")
-        )
-            throw new Error("malformed cart");
-    } catch (e) {
-        cartStr = emptyCartString();
-        sessionStorage.setItem("cart", cartStr);
-        cartObj = JSON.parse(cartStr);
+    console.log('getCart cartStr --------> ');
+    console.log(cartStr)
+
+    const sanitized = sanitizer.sanitize(cartStr, false);
+    // xss-safe cart string
+
+    if (sanitized === true) {
+        try {
+            cartObj = JSON.parse(cartStr);
+
+            console.table("cartObj - table: /n");
+            console.table(cartStr);
+            console.log(" - cartStr try: ");
+            console.log(cartStr);
+            console.log(" - cartObj try: ");
+            console.log(cartObj);
+
+            if (
+                !cartObj.hasOwnProperty("title") ||
+                !cartObj.hasOwnProperty("version") ||
+                !cartObj.hasOwnProperty("entries")
+            )
+                throw new Error("malformed cart");
+        } catch (e) {
+            cartStr = emptyCartString();
+            sessionStorage.setItem("cart", cartStr);
+            cartObj = JSON.parse(cartStr);
+
+            console.log("******** Exception*********** : " + e.message);
+            console.log(" - log: ");
+            console.log(cartStr);
+            console.log('sessionStorage.getItem("cart"): \n');
+            console.log(sessionStorage.getItem("cart"));
+        }
+    } else {
+        console.log('sanitizer.sanitize(sessionStorage.getItem("cart"), false) is not true xxxxxxxxxxxxxxxxx');
+        console.log('sessionStorage.getItem("cart") --------> ');
+        console.log(sessionStorage.getItem("cart"));
     }
+
+    // return sanitizer.sanitize(cartObj, false);
     return cartObj;
 }
 
 function updateCartTitle(title, version) {
+    console.log("-----------------Start trace -updateCartTitle--------------------------");
+    console.trace("updateCartTitle", title);
+    console.trace("updateCartTitle", version);
+    console.log("----------------- End trace updateCartTitle---------------------------");
+
+
     if (version === null && title === null) {
         $("#cart-title").html("Cart");
     } else {
         let title_esc = _.escape(title);
         let version_esc = _.escape(version);
-        $("#cart-title").html(
+        const sanitized = sanitizer.sanitize(
             `${title_esc}<sub><span style="font-weight: normal; font-size: 0.75em;">(${version_esc})</span></sub>`
         );
+    
+        if (sanitized) {
+            $("#cart-title").html(
+                `${title_esc}<sub><span style="font-weight: normal; font-size: 0.75em;">(${version_esc})</span></sub>`
+            );
+        } else {
+            console.log(" not true xxxxxxxxxxxxxxxxx");
+        }
     }
+
+    // if (version === null && title === null) {
+    //     console.log("version and tile are null");
+
+    //     $("#cart-title").html("Cart");
+    // } else {
+    //     console.log("version and title are not null");
+    //     let title_esc = _.escape(title);
+    //     console.log("title_esc: " + title_esc);
+
+    //     let version_esc = _.escape(version);
+    //     console.log("version_esc: " + version_esc);
+
+    //     if (
+    //         sanitizer.sanitize(
+    //             `${title_esc}<sub><span style="font-weight: normal; font-size: 0.75em;">(${version_esc})</span></sub>`
+    //         )
+    //     ) {
+    //         $("#cart-title").html(
+    //             `${title_esc}<sub><span style="font-weight: normal; font-size: 0.75em;">(${version_esc})</span></sub>`
+    //         );
+    //     } else {
+    //         console.log(
+    //             'sanitizer.sanitize(${title_esc}<sub><span style="font-weight: normal; font-size: 0.75em;">(${version_esc})</span></sub>) is not true xxxxxxxxxxxxxx'
+    //         );
+    //     }
+    // }
 }
 
 function populateCart() {
+    console.log("-----------------Start trace populateCart---------------------------");
+    console.trace();
+    console.log("----------------- End trace populateCart---------------------------");
+
     let cartData = getCart();
+    
+    console.log("cartData: \n") 
+    console.log(JSON.stringify(cartData))
+
     updateCartTitle(cartData.title, cartData.version);
+
+    console.log(`cartData.title: ${cartData.title} cartData.version: ${cartData.version} `);
+
     for (const cartEntry of cartData.entries) {
         $("#cart").append(cartItemTemplate(cartData.version, cartEntry));
     }
 }
 
 var saveNote = _.debounce(function () {
+    console.log("-----------------Start trace ---------------------------");
+    console.trace();
+    console.log("----------------- End trace ---------------------------");
+
     let cartData = getCart();
     let autoSave = $("#auto-save").length !== 0 && sessionStorage.getItem("auto-save") === "true";
 
@@ -94,21 +277,37 @@ var saveNote = _.debounce(function () {
         cartData.entries[i].notes = cart[i];
     }
     sessionStorage.setItem("cart", JSON.stringify(cartData));
+
+    onsole.log("getCart - JSON.stringify(cartData)")
+    console.log(JSON.stringify(cartData));
+    console.log('getCart - sessionStorage.getItem("cart"): \n')
+    console.log(sessionStorage.getItem("cart"));
+    
+
     if (autoSave) {
         saveCartDatabase(false); // verbose=false
     }
 }, 400);
 
 function updateAutoSave() {
+    console.log("-----------------Start trace ---------------------------");
+    console.trace();
+    console.log("----------------- End trace ---------------------------");
+
     // update session storage to match checkbox
     let newState = $("#auto-save").prop("checked").toString();
     sessionStorage.setItem("auto-save", newState);
+    console.log('sessionStorage.getItem("newState"): \n' + sessionStorage.getItem("newState"));
 
     // run quick save incase content was added before enabling auto-save to DB (as auto-save uses oninput events)
     if (newState === "true" && getCart().entries.length !== 0) saveCartDatabase(false); // verbose=false
 }
 
 function deleteItem(element) {
+    console.log("-----------------Start trace ---------------------------");
+    console.trace("deleteItem", element);
+    console.log("----------------- End trace ---------------------------");
+
     // visual removal
     var cartItem = $(element).closest("li");
     var index = cartItem.index();
@@ -126,12 +325,22 @@ function deleteItem(element) {
     }
 
     sessionStorage.setItem("cart", JSON.stringify(cartData));
+    console.log('sessionStorage.getItem("cartData"): \n' + sessionStorage.getItem("cartData"));
 }
 
 function toggleCart() {
+    console.log("-----------------Start trace toggleCart()---------------------------");
+    console.trace();
+    console.log("----------------- End trace toggleCart()---------------------------");
+
     var shown = sessionStorage.getItem("cart-shown");
+    console.log("shown: " + shown);
+    console.table("shown - table: " + shown);
+    console.log(Object.assign({}, shown));
+
     if (shown === null || shown === "" || shown === "yes") {
         sessionStorage.setItem("cart-shown", "no");
+
         $("#cartColumn").fadeOut(200);
     } else {
         sessionStorage.setItem("cart-shown", "yes");
@@ -140,6 +349,10 @@ function toggleCart() {
 }
 
 function importCart() {
+    console.log("-----------------Start trace ---------------------------");
+    console.trace();
+    console.log("----------------- End trace ---------------------------");
+
     if (!window.File || !window.FileReader || !window.FileList || !window.Blob) {
         spawnAlertModal("Browser Compatibility Issue", "The File APIs are not fully supported in this browser.");
         return;
@@ -148,9 +361,29 @@ function importCart() {
 }
 
 function cartItemTemplate(version, i) {
+    console.log("-----------------Start trace ---------------------------");
+    console.trace("cartItemTemplate", version, i);
+    console.log("----------------- End trace ---------------------------");
+
+
     // i -> cart entry data
     let itemURL = `/question/${version}/${i.tactic}/${i.index.replace(".", "/")}`;
-    return $(`
+    const sanitized = sanitizer.sanitize(`
+    <li class="cartItem">
+        <a href="${itemURL}">
+            ${_.escape(i.name)} (${_.escape(i.index)})<br>
+            <i>${_.escape(i.tacticName)} (${_.escape(i.tactic)})</i>
+        </a>
+        <textarea oninput="saveNote()" class="textarea is-small note">${_.escape(i.notes)}</textarea>
+        <a class="cartItemDelete">
+            <span class="icon is-medium">
+                <i class="mdi mdi-24px mdi-delete" onclick="deleteItem(this)"></i>
+            </span>
+        </a>
+    </li>`);
+
+    if (sanitized) {
+        return $(`
         <li class="cartItem">
             <a href="${itemURL}">
                 ${_.escape(i.name)} (${_.escape(i.index)})<br>
@@ -164,12 +397,19 @@ function cartItemTemplate(version, i) {
             </a>
         </li>
     `);
+    } else {
+        console.log("cartItemTemplate is not true xxxxxxxxxxxxxxxxxxxxxxxxx");
+    }
 }
 
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------
 // Save Cart to Database Functionality
 
 function preSaveCartModal() {
+    console.log("-----------------Start trace ---------------------------");
+    console.trace();
+    console.log("----------------- End trace ---------------------------");
+
     let cartData = getCart();
     if (cartData.entries.length === 0) {
         //cart is empty
@@ -180,6 +420,10 @@ function preSaveCartModal() {
 }
 
 function saveCartDatabase(verbose) {
+    console.log("-----------------Start trace ---------------------------");
+    console.trace("saveCartDatabase", verbose);
+    console.log("----------------- End trace ---------------------------");
+
     let cartData = getCart();
     let cart_name = cartData.title;
 
@@ -215,6 +459,10 @@ function saveCartDatabase(verbose) {
 
 // called when manually entered cart name changes
 function cartNameChange() {
+    console.log("----------------- Start trace ---------------------------");
+    console.trace();
+    console.log("----------------- End trace ---------------------------");
+
     var typedCartName = _.trim($("#rename_modal_new_name").val());
     var currentCart = getCart();
     var attackVersion = currentCart.version;
@@ -222,6 +470,7 @@ function cartNameChange() {
     // save local
     currentCart.title = typedCartName;
     sessionStorage.setItem("cart", JSON.stringify(currentCart));
+    console.log('sessionStorage.getItem("cart") JSON.stringify(currentCart): \n' + sessionStorage.getItem("cart"));
     updateCartTitle(typedCartName, attackVersion);
     closeModal("#rename_modal");
 
@@ -234,6 +483,10 @@ function cartNameChange() {
 // lists current cart names to ensure an over-write is only done intentionally
 // used instead of openModal('#rename_modal') as cart name list is dynamic
 function showRenameModal() {
+    console.log("-----------------Start trace ---------------------------");
+    console.trace();
+    console.log("----------------- End trace ---------------------------");
+
     let curNameBox = $("#rename_modal_current_name");
     let newNameBox = $("#rename_modal_new_name");
     let dbCartList = $("#rename_modal_db_cart_list");
@@ -256,6 +509,10 @@ function showRenameModal() {
 // callback for showRenameModal() to get and populate the DB cart list
 // fills a list with escaped named
 function showRenameModalPopulateCallback(carts) {
+    console.log("-----------------Start trace ---------------------------");
+    console.trace("showRenameModalPopulateCallback", carts);
+    console.log("----------------- End trace ---------------------------");
+
     let dbCartList = $("#rename_modal_db_cart_list");
     for (const cart of carts) {
         dbCartList.append(`<li>${_.escape(cart.name)}</li>`);
@@ -264,6 +521,10 @@ function showRenameModalPopulateCallback(carts) {
 
 // is called when the new name box is typed in for the rename modal
 function renameModalOnTypeNewName() {
+    console.log("-----------------Start trace ---------------------------");
+    console.trace();
+    console.log("----------------- End trace ---------------------------");
+
     let newName = _.trim($("#rename_modal_new_name").val());
     let dbCartList = $("#rename_modal_db_cart_list");
 
@@ -288,10 +549,14 @@ function renameModalOnTypeNewName() {
     $("#rename-modal-confirm-button").prop("disabled", newName === "");
 }
 
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------
 // Upload Download Operations
 
 function getDateString() {
+    console.log("-----------------Start trace ---------------------------");
+    console.trace();
+    console.log("----------------- End trace ---------------------------");
+
     // YYYY-MM-DD_hh-mm-ss
     let d = new Date();
 
@@ -305,10 +570,14 @@ function getDateString() {
     return `${year}-${month}-${day}_${hour}-${minute}-${second}`;
 }
 
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------
 // Upload Download Operations
 
 function downloadCart() {
+    console.log("-----------------Start trace ---------------------------");
+    console.trace();
+    console.log("----------------- End trace ---------------------------");
+
     let cartData = getCart();
     if (cartData.entries.length === 0) {
         //cart is empty
@@ -326,6 +595,10 @@ function downloadCart() {
 }
 
 function uploadCart(cartFileInput) {
+    console.log("-----------------Start trace ---------------------------");
+    console.trace("uploadCart", cartFileInput);
+    console.log("----------------- End trace ---------------------------");
+
     var file = cartFileInput.target.files[0];
     if (!file) {
         spawnAlertModal("Cart Upload Issue", "The file specified is invalid");
@@ -339,10 +612,14 @@ function uploadCart(cartFileInput) {
     reader.readAsText(file);
 }
 
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------
 // Word Export
 
 function hyperlinkParagraph(args) {
+    console.log("-----------------Start trace hyperlinkParagraph---------------------------");
+    console.trace("hyperlinkParagraph", args);
+    console.log("----------------- End trace hyperlinkParagraph---------------------------");
+
     const par = new docx.Paragraph({
         alignment: args.alignment,
         children: [
@@ -364,6 +641,10 @@ function hyperlinkParagraph(args) {
 }
 
 function wordExport() {
+    console.log("-----------------Start trace wordExport---------------------------");
+    console.trace();
+    console.log("----------------- End trace -wordExport--------------------------");
+
     let cartData = getCart();
     if (cartData.entries.length === 0) {
         //cart is empty
@@ -571,11 +852,18 @@ function wordExport() {
     });
 }
 
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------
 // Navigator Export
 
 function navigatorExport() {
+    console.log("-----------------Start trace navigatorExport---------------------------");
+    console.trace();
+    console.log("----------------- End trace navigatorExport---------------------------");
+
     let cartData = getCart();
+    console.log("cartData");
+    console.table(cartData);
+    console.log("cartData: \n" + cartData);
     if (cartData.entries.length === 0) {
         //cart is empty
         showToast("You must add items to the cart first.", "is-warning");
@@ -646,11 +934,7 @@ function navigatorExport() {
         hideDisabled: false,
         techniques: tech_list,
         gradient: {
-            colors: [
-                "#ff6666ff",
-                "#ffe766ff",
-                "#8ec843ff"
-            ],
+            colors: ["#ff6666ff", "#ffe766ff", "#8ec843ff"],
             minValue: 0,
             maxValue: 100,
         },
@@ -662,23 +946,48 @@ function navigatorExport() {
         selectTechniquesAcrossTactics: true,
         selectSubtechniquesWithParent: false,
     };
-    downloadObjectAsJson(navigator_json, cartData.title);
+
+    console.log("NavigateExport sanitizer.sanitize(navigator_json, false): ");
+    console.log(JSON.stringify(sanitizer.sanitize(navigator_json, false)));
+
+    const sanitized = sanitizer.sanitize(JSON.stringify(navigator_json), false);
+    if (sanitized) {
+        downloadObjectAsJson(navigator_json, cartData.title);
+    } else {
+        console.log("navigatorExport navigator_json is not true xxxxxxxxxxxxxx");
+    }
 }
 
 function downloadObjectAsJson(exportObj, exportName) {
+    console.log("-----------------Start trace downloadObjectAsJson ---------------------------");
+    console.trace("downloadObjectAsJson", JSON.stringify(exportObj));
+    console.log("----------------- End trace downloadObjectAsJson ---------------------------");
+
     var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
-    var downloadAnchorNode = document.createElement("a");
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", exportName + "-navigator.json");
-    document.body.appendChild(downloadAnchorNode); // required for firefox
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    console.log("downloadObjectAsJson JSON stringified dataStr: ");
+    console.log(JSON.stringify(dataStr));
+
+    const sanitized = sanitizer.sanitize(JSON.stringify(dataStr), false);
+    if (sanitized) {
+        var downloadAnchorNode = document.createElement("a");
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", exportName + "-navigator.json");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    } else {
+        console.log("sanitizer.sanitize(dataStr,false) is not true xxxxxxxxxxxxxx");
+    }
 }
 
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------
 // Load Cart from File + Misc
 
 function updateImport(inputCartData) {
+    console.log("-----------------Start trace updateImport---------------------------");
+    console.trace("updateImport", inputCartData);
+    console.log("----------------- End trace updateImport---------------------------");
+
     // fetch ATT&CK versions on server to ensure this cart will have content to view
     $.ajax({
         type: "GET",
@@ -742,6 +1051,9 @@ function updateImport(inputCartData) {
 
             // success -> store new data and display
             sessionStorage.setItem("cart", JSON.stringify(cartData));
+            console.log(
+                'sessionStorage.getItem("cart") JSON.stringify(cartData): \n' + sessionStorage.getItem("cart")
+            );
             updateCartTitle(cartData.title, cartData.version);
             $("#cartFile").val(null);
             $("#cart").empty();
@@ -756,6 +1068,10 @@ function updateImport(inputCartData) {
 }
 
 function preCloseCartModal() {
+    console.log("-----------------Start trace -preCloseCartModal--------------------------");
+    console.trace();
+    console.log("----------------- End trace preCloseCartModal---------------------------");
+
     // Checks if closing the cart is even a valid action first
 
     let cartData = getCart();
@@ -768,6 +1084,9 @@ function preCloseCartModal() {
 }
 
 function clearCart() {
+    console.log("-----------------Start trace clearCart---------------------------");
+    console.trace();
+    console.log("----------------- End trace clearCart---------------------------");
     $("#cart").empty();
     updateCartTitle(null, null);
     sessionStorage.setItem("cart", emptyCartString());
@@ -776,11 +1095,15 @@ function clearCart() {
     closeModal("#close_cart_modal");
 }
 
-// --------------------------------------------------------------------------------------------------------------------
+// -----------------------
 // Version Select Locking - Only allow access to 1 ATT&CK version when a cart is opened
 
 // locks
 function lockVersionSelect() {
+    console.log("-----------------Start trace lockVersionSelect---------------------------");
+    console.trace();
+    console.log("----------------- End trace lockVersionSelect---------------------------");
+
     sessionStorage.setItem("version-select-locked", "true");
     $("#versionSelect").prop("disabled", true);
 
@@ -796,6 +1119,10 @@ function lockVersionSelect() {
 
 // unlocks
 function unlockVersionSelect() {
+    console.log("-----------------Start trace unlockVersionSelect---------------------------");
+    console.trace();
+    console.log("----------------- End trace unlockVersionSelect---------------------------");
+
     sessionStorage.setItem("version-select-locked", "false");
     $("#versionSelect").prop("disabled", false);
 
@@ -807,11 +1134,19 @@ function unlockVersionSelect() {
 
 // checks state
 function isVersionSelectLocked() {
+    console.log("-----------------Start trace isVersionSelectLocked ---------------------------");
+    console.trace();
+    console.log("----------------- End trace isVersionSelectLocked---------------------------");
+
     var versionSelectLocked = sessionStorage.getItem("version-select-locked");
     return versionSelectLocked === "true";
 }
 
 function lockRename() {
+    console.log("-----------------Start trace lockRename---------------------------");
+    console.trace();
+    console.log("----------------- End trace lockRename ---------------------------");
+
     $("#rename-button").prop("disabled", true);
     var renameButton = $("#rename-button");
     renameButton.attr(
@@ -822,6 +1157,10 @@ function lockRename() {
 
 // unlocks
 function unlockRename() {
+    console.log("-----------------Start trace unlockRename---------------------------");
+    console.trace();
+    console.log("----------------- End trace unlockRename---------------------------");
+
     $("#rename-button").prop("disabled", false);
     var renameButton = $("#rename-button");
     renameButton.removeClass("has-tooltip-multiline");
